@@ -16,7 +16,12 @@
 #include <malloc.h>
 #include <memory.h>
 #include <tchar.h>
+#include <d3d11.h>
 
 
 // TODO: reference additional headers your program requires here
 #include <iostream>
+#pragma comment(lib,"d3d11.lib")
+#include "AlphaDefines.h"
+#include <DirectXMath.h>
+using namespace DirectX;
