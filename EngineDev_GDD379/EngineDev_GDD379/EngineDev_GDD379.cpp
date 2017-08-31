@@ -3,8 +3,10 @@
 
 #include "stdafx.h"
 #include "EngineDev_GDD379.h"
+#include "Mush_Graphics.h"
 
 #define MAX_LOADSTRING 100
+Mush_Graphics Graph;
 
 // Global Variables:
 HINSTANCE hInst;								// current instance
@@ -49,6 +51,8 @@ int APIENTRY _tWinMain(_In_ HINSTANCE hInstance,
 #endif
 
 	hAccelTable = LoadAccelerators(hInstance, MAKEINTRESOURCE(IDC_ENGINEDEV_GDD379));
+	
+	Graph.SetPipeline();
 
 	// Main application loop:
 	while (true)
@@ -129,6 +133,8 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
    {
       return FALSE;
    }
+   //////////////////////////////////////////////////////////////rrrrrr
+   Graph.CreateDeviceSwapChain(hWnd);
 
    ShowWindow(hWnd, nCmdShow);
    UpdateWindow(hWnd);

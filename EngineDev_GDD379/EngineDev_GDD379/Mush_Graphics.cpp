@@ -4,6 +4,53 @@
 
 Mush_Graphics::Mush_Graphics()
 {
+	/*Tracker_Up = XMFLOAT3(0, 1, 0);
+	Tracker_Pos = XMFLOAT3(0, 0, 0);
+	Tracker_Tgt = XMFLOAT3(0, 0, 1);*/
+
+	m_view = XMFLOAT4X4(
+		1.0f, 0.0f, 0.0f, 0.0f,
+		0.0f, 1.0f, 0.0f, 0.0f,
+		0.0f, 0.0f, 1.0f, 0.0f,
+		0.0f, 0.0f, -1.5f, 1.0f);
+
+	XMMATRIX rotation_trix, projection;
+	XMMATRIX view = XMLoadFloat4x4(&m_view);
+	view = XMMatrixTranslation(0, 1, -5);
+	view = XMMatrixInverse(nullptr, view);
+	toshader_Default.view = XMMatrixTranspose(view);
+	XMStoreFloat4x4(&m_view, view);
+
+	// zNear = 0.1;
+	// zFar = 10
+	// vFOV = 90
+	float aspect = BACKBUFFER_WIDTH / BACKBUFFER_HEIGHT;
+	projection = XMMatrixPerspectiveFovLH(XMConvertToRadians(90.0f), aspect, 0.1f, 100.0f);
+	toshader_Default.projection = XMMatrixTranspose(projection);
+	XMStoreFloat4x4(&m_Projection, projection);
+
+	D3D11_BUFFER_DESC cb_3d;
+	ZeroMemory(&cb_3d, sizeof(D3D11_BUFFER_DESC));
+	cb_3d.Usage = D3D11_USAGE_DYNAMIC;
+	cb_3d.ByteWidth = sizeof(cbMirror_Perspective);
+	cb_3d.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+	cb_3d.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+	m_iDevice->CreateBuffer(&cb_3d, NULL, &m_cBuff_perspective);
+
+
+	m_iDevice->QueryInterface(IID_PPV_ARGS(&Debuger));
+
+	//D3D11_SAMPLER_DESC sampler_desc;
+	//ZeroMemory(&sampler_desc, sizeof(D3D11_SAMPLER_DESC));
+	//sampler_desc.Filter = D3D11_FILTER::D3D11_FILTER_MIN_MAG_MIP_LINEAR;
+	//sampler_desc.AddressU = D3D11_TEXTURE_ADDRESS_WRAP;
+	//sampler_desc.AddressV = D3D11_TEXTURE_ADDRESS_WRAP;
+	//sampler_desc.AddressW = D3D11_TEXTURE_ADDRESS_WRAP;
+	//sampler_desc.MinLOD = 0;
+	//sampler_desc.MaxLOD = Test_UV_Map_numlevels;
+	//sampler_desc.ComparisonFunc = D3D11_COMPARISON_FUNC::D3D11_COMPARISON_GREATER_EQUAL;
+
+	//iDevice->CreateSamplerState(&sampler_desc, &m_SampleState);
 
 }
 
@@ -98,7 +145,7 @@ void Mush_Graphics::CreateDefaultCube(ID3D11Buffer **_vertBuffer){
 
 }
 
-void Mush_Graphics::CreateDeviceSwapChain(ID3D11Device **_device, IDXGISwapChain **_chain, ID3D11DeviceContext **_cntx, HWND &_window){
+void Mush_Graphics::CreateDeviceSwapChain(HWND &_window){
 
 	DXGI_SWAP_CHAIN_DESC chainDesc;
 	ZeroMemory(&chainDesc, sizeof(DXGI_SWAP_CHAIN_DESC));
@@ -126,13 +173,6 @@ void Mush_Graphics::CreateDeviceSwapChain(ID3D11Device **_device, IDXGISwapChain
 		&FeatureLevelsRequested, numLevelsRequested, D3D11_SDK_VERSION, &chainDesc, &swapChain,
 		&iDevice, &FeatureLevelsSupported, &iDeviceContext);
 #endif
-
-	ID3D11Resource *iResource;
-	ZeroMemory(&iResource, sizeof(ID3D11Resource));
-	m_swapChain->GetBuffer(0, __uuidof(iResource), reinterpret_cast<void**>(&iResource));
-	m_iDevice->CreateRenderTargetView(iResource, NULL, &m_iRenderTarget);
-	iResource->Release();
-
 }
 
 void Mush_Graphics::SetDepthStencilBuffer(ID3D11Texture2D **_buffer){
@@ -192,7 +232,7 @@ void Mush_Graphics::SetDepthStencilView(ID3D11DepthStencilView **_view, ID3D11Te
 
 }
 
-void Mush_Graphics::SetRasterizerState(ID3D11RasterizerState **_rasterstate){
+void Mush_Graphics::SetRasterizerState(ID3D11RasterizerState **_rasterstate, ID3D11RenderTargetView **_RTV){
 
 	D3D11_RASTERIZER_DESC raster_desc;
 	ZeroMemory(&raster_desc, sizeof(D3D11_RASTERIZER_DESC));
@@ -201,4 +241,130 @@ void Mush_Graphics::SetRasterizerState(ID3D11RasterizerState **_rasterstate){
 	raster_desc.DepthClipEnable = true;
 
 	m_iDevice->CreateRasterizerState(&raster_desc, _rasterstate);
+
+	ID3D11Resource *iResource;
+	ZeroMemory(&iResource, sizeof(ID3D11Resource));
+	m_swapChain->GetBuffer(0, __uuidof(iResource), reinterpret_cast<void**>(&iResource));
+	m_iDevice->CreateRenderTargetView(iResource, NULL, _RTV);
+	iResource->Release();
+
+}
+
+void Mush_Graphics::SetShaderInputlayout(ID3D11VertexShader **_vs, ID3D11PixelShader **_ps, ID3D11InputLayout **_input){
+	char *vsByte, *psByte;
+	size_t vs_t, ps_t;
+	
+	LoadCompiledShaderData(&vsByte, vs_t, "E:\\Repos\\EngineDevRepo\\EngineDev\\EngineDev_GDD379\\Debug\\VS_Default.cso");
+	LoadCompiledShaderData(&psByte, ps_t, "E:\\Repos\\EngineDevRepo\\EngineDev\\EngineDev_GDD379\\Debug\\PS_Default.cso");
+
+	m_iDevice->CreateVertexShader(vsByte, vs_t, NULL, _vs);
+	m_iDevice->CreatePixelShader(psByte, ps_t, NULL, _ps);
+
+	D3D11_INPUT_ELEMENT_DESC layout[2];
+	layout[0] = { "SV_POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 };
+	layout[1] = { "COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 };
+
+	m_iDevice->CreateInputLayout(layout, 2, vsByte, vs_t, _input);
+}
+
+BOOL Mush_Graphics::LoadCompiledShaderData(char **byteCode, size_t &byteCodeSize, const char *fileName){
+	std::ifstream load;
+	load.open(fileName, std::ios_base::binary);
+	if (!load.is_open()) 
+		return false;
+	load.seekg(0, std::ios_base::end);
+	byteCodeSize = size_t(load.tellg());
+	*byteCode = new char[byteCodeSize];
+	load.seekg(0, std::ios_base::beg);
+	load.read(*byteCode, byteCodeSize);
+	load.close();
+	return true;
+}
+
+void Mush_Graphics::SetPipeline(pipeline_state_t *_pipe){
+	
+	SetDepthStencilBuffer(&_pipe->depthStencilBuffer);
+	SetDepthStencilState(&_pipe->depthStencilState);
+	SetDepthStencilView(&_pipe->depthStencilView, _pipe->depthStencilBuffer);
+	SetShaderInputlayout(&_pipe->vertex_shader, &_pipe->pixel_shader, &_pipe->input_layout);
+	SetRasterizerState(&_pipe->rasterState, &_pipe->render_target);
+}
+
+void Mush_Graphics::SetPipeline(){
+
+	SetDepthStencilBuffer(&default_pipeline.depthStencilBuffer);
+	SetDepthStencilState(&default_pipeline.depthStencilState);
+	SetDepthStencilView(&default_pipeline.depthStencilView, default_pipeline.depthStencilBuffer);
+	SetShaderInputlayout(&default_pipeline.vertex_shader, &default_pipeline.pixel_shader, &default_pipeline.input_layout);
+	SetRasterizerState(&default_pipeline.rasterState, &default_pipeline.render_target);
+	InitViewport(m_viewPort, BACKBUFFER_WIDTH, BACKBUFFER_HEIGHT);
+}
+
+void Mush_Graphics::InitViewport(D3D11_VIEWPORT &_viewport, FLOAT _w, FLOAT _h, FLOAT TopLeftX, FLOAT TopLeftY,FLOAT _minDepth, FLOAT MaxDepth) {
+	ZeroMemory(&_viewport, sizeof(_viewport));
+	_viewport.Height = _h;
+	_viewport.Width = _w;
+	_viewport.TopLeftX = ;
+	_viewport.TopLeftY = BACKBUFFER_HEIGHT - hovCam_view.Height;
+	_viewport.MinDepth = 0.0f;
+	_viewport.MaxDepth = 1.0f;
+}
+
+bool Mush_Graphics::Render(){
+
+	ID3D11Buffer *newCube;
+	CreateDefaultCube(&newCube);
+	XMMATRIX cube_matrix;
+	cube_matrix = XMMatrixIdentity();
+	toshader_Default.model = cube_matrix;
+	m_iDeviceContext->UpdateSubresource(m_cBuff_perspective, 0, NULL, &toshader_Default, 0, 0);
+
+
+	UINT _startSlot = 0;
+	UINT _numBuffs = 1;
+	UINT _strides = 0;
+	UINT _offSets = 0;
+	_strides = static_cast<UINT>(sizeof(VERTEX_PosCol));
+
+
+	// IA Stage
+	m_iDeviceContext->IASetVertexBuffers(0, 1, &newCube, &_strides, &_offSets);
+	//m_iDeviceContext->IASetIndexBuffer(ib_Box, DXGI_FORMAT_R32_UINT, 0);
+	m_iDeviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY::D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+	m_iDeviceContext->IASetInputLayout(default_pipeline.input_layout);
+
+
+	// VS Stage
+	m_iDeviceContext->VSSetConstantBuffers(0, 1, &m_cBuff_perspective);
+	m_iDeviceContext->VSSetShader(default_pipeline.vertex_shader, NULL, NULL);
+
+#if 0
+	// GS Stage
+	m_iDeviceContext->GSSetShader(GeoSha_Prototype, NULL, NULL);
+	m_iDeviceContext->GSSetConstantBuffers(0, 1, &cBuff_perspective);
+#endif
+
+	// PS Stage
+	//m_iDeviceContext->PSSetConstantBuffers(0, 1, &m_cBuff_perspective);
+	//m_iDeviceContext->PSSetConstantBuffers(1, 1, &cBuff_lighting);
+	//m_iDeviceContext->PSSetSamplers(0, 1, &SampleState);
+	m_iDeviceContext->PSSetShader(default_pipeline.pixel_shader, NULL, NULL);
+	//m_iDeviceContext->PSSetShaderResources(0, 1, &ShaderView);
+	//m_iDeviceContext->PSSetShaderResources(1, 1, &SkyboxView);
+
+	// RS Stage
+	m_iDeviceContext->RSSetState(default_pipeline.rasterState);
+	m_iDeviceContext->RSSetViewports(1, &m_viewPort);
+
+	// OM Stage
+	m_iDeviceContext->OMSetRenderTargets(1, &default_pipeline.render_target, default_pipeline.depthStencilView );
+
+	// Draw Stage
+	FLOAT DarkBlue[] = { 0.1f, 0.1f, 0.1f, 1.0f };
+	FLOAT Black[] = { 0.2f, 0.2f, 0.2f, 1.0f };
+	m_iDeviceContext->ClearRenderTargetView(default_pipeline.render_target, DarkBlue);
+	m_iDeviceContext->DrawIndexed(36, 0, 0);
+
+
+	return false;
 }

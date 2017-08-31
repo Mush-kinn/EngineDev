@@ -30,8 +30,8 @@ private:
 	ID3D11InputLayout *m_Lay_perspective;
 
 	// Shaders
-	ID3D11VertexShader *m_VertSha_perspective;
-	ID3D11PixelShader *m_PixSha_perspective;
+	ID3D11VertexShader *m_VS_perspective;
+	ID3D11PixelShader *m_PS_perspective;
 
 	// textures
 	ID3D11Texture2D *m_tx_UVMap;
@@ -49,6 +49,8 @@ private:
 	D3D11_VIEWPORT m_viewPort;
 	IDXGISwapChain *m_swapChain;
 
+	cbMirror_Perspective toshader_Default;
+
 public:
 	Mush_Graphics();
 	~Mush_Graphics();
@@ -65,23 +67,30 @@ public:
 		ID3D11RasterizerState *rasterState;
 	}default_pipeline;
 
-	void CreateDeviceSwapChain(ID3D11Device **_device, IDXGISwapChain **_chain, ID3D11DeviceContext **_cntx, HWND &_window);
+	struct VERTEX_PosCol{
+		XMFLOAT3 pos;
+		XMFLOAT4 color;
+	};
+
+	ID3D11Debug *Debuger;
+
+	void CreateDeviceSwapChain(HWND &_window);
 
 	void InitViewport(D3D11_VIEWPORT &_viewport, FLOAT _w, FLOAT _h,
 		FLOAT TopLeftX = 0, FLOAT TopLeftY = 0,
 		FLOAT _minDepth = 0, FLOAT MaxDepth = 1);
 
+	void SetPipeline();
 	void SetPipeline(pipeline_state_t *_pipe);
 	void CreateDefaultCube(ID3D11Buffer **_vertBuffer);
 	void SetDepthStencilBuffer(ID3D11Texture2D ** _buffer);
 	void SetDepthStencilState(ID3D11DepthStencilState **_state);
 	void SetDepthStencilView(ID3D11DepthStencilView **_view, ID3D11Texture2D *_resource);
-	void SetRasterizerState(ID3D11RasterizerState **_rasterstate);
+	void SetRasterizerState(ID3D11RasterizerState **_rasterstate, ID3D11RenderTargetView **_RTV);
+	void SetShaderInputlayout(ID3D11VertexShader **_vs, ID3D11PixelShader **_ps, ID3D11InputLayout **_input);
+	BOOL LoadCompiledShaderData(char **byteCode, size_t &byteCodeSize, const char *fileName);
 
-	struct VERTEX_PosCol{
-		XMFLOAT3 pos;
-		XMFLOAT4 color;
-	};
+	bool Render();
 
 };
 
