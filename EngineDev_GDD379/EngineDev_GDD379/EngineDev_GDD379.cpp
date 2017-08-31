@@ -71,6 +71,7 @@ int APIENTRY _tWinMain(_In_ HINSTANCE hInstance,
 		}
 		else
 		{
+			Graph.Render();
 			// In the future, do per frame/tick updates here...
 		}
 	}
@@ -135,7 +136,7 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
    }
    //////////////////////////////////////////////////////////////rrrrrr
    Graph.CreateDeviceSwapChain(hWnd);
-
+   Graph.Init();
    ShowWindow(hWnd, nCmdShow);
    UpdateWindow(hWnd);
 
@@ -158,6 +159,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 	PAINTSTRUCT ps;
 	HDC hdc;
 
+	if (GetAsyncKeyState(VK_ESCAPE))
+		message = WM_DESTROY;
 	switch (message)
 	{
 	case WM_DESTROY:

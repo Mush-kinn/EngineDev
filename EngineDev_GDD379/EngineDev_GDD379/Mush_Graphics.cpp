@@ -4,6 +4,12 @@
 
 Mush_Graphics::Mush_Graphics()
 {
+	
+
+}
+
+
+void Mush_Graphics::Init(){
 	/*Tracker_Up = XMFLOAT3(0, 1, 0);
 	Tracker_Pos = XMFLOAT3(0, 0, 0);
 	Tracker_Tgt = XMFLOAT3(0, 0, 1);*/
@@ -34,9 +40,8 @@ Mush_Graphics::Mush_Graphics()
 	cb_3d.Usage = D3D11_USAGE_DYNAMIC;
 	cb_3d.ByteWidth = sizeof(cbMirror_Perspective);
 	cb_3d.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
-	cb_3d.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+	cb_3d.CPUAccessFlags = D3D11_CPU_ACCESS_FLAG::D3D11_CPU_ACCESS_WRITE;
 	m_iDevice->CreateBuffer(&cb_3d, NULL, &m_cBuff_perspective);
-
 
 	m_iDevice->QueryInterface(IID_PPV_ARGS(&Debuger));
 
@@ -52,11 +57,28 @@ Mush_Graphics::Mush_Graphics()
 
 	//iDevice->CreateSamplerState(&sampler_desc, &m_SampleState);
 
-}
+	CreateDefaultCube(&m_vb_Cube);
 
+	turn = 0.04f;
+	xR = 1;
+	yR = 2;
+	zR = 3;
+}
 
 Mush_Graphics::~Mush_Graphics()
 {
+	OutputDebugStringW(L"\n\n\n <Detailed Dump> \n\n");
+
+	m_iDeviceContext->ClearState();
+	m_iDevice->Release();
+	m_swapChain->Release();
+	m_iDeviceContext->Release();
+	
+	m_vb_Cube->Release();
+
+	Debuger->ReportLiveDeviceObjects(D3D11_RLDO_DETAIL);
+	Debuger->Release();
+	OutputDebugStringW(L"\n </Detailed Dump> \n\n\n");
 }
 
 void Mush_Graphics::CreateDefaultCube(ID3D11Buffer **_vertBuffer){
@@ -103,31 +125,31 @@ void Mush_Graphics::CreateDefaultCube(ID3D11Buffer **_vertBuffer){
 	newCube[17] = { verts[3], colors[0] };
 
 	//lf 4-0-6  0-2-6 [6]
-	newCube[18] = { verts[4], colors[6] };
-	newCube[19] = { verts[0], colors[6] };
-	newCube[20] = { verts[6], colors[6] };
-
-	newCube[21] = { verts[0], colors[6] };
-	newCube[22] = { verts[2], colors[6] };
-	newCube[23] = { verts[6], colors[6] };
+	newCube[18] = { verts[4], colors[5] };
+	newCube[19] = { verts[0], colors[5] };
+	newCube[20] = { verts[6], colors[5] };
+									 
+	newCube[21] = { verts[0], colors[5] };
+	newCube[22] = { verts[2], colors[5] };
+	newCube[23] = { verts[6], colors[5] };
 
 	//bk 5-4-7  4-6-7  [5]
-	newCube[24] = { verts[5], colors[5] };
-	newCube[25] = { verts[4], colors[5] };
-	newCube[26] = { verts[7], colors[5] };
-
-	newCube[27] = { verts[4], colors[5] };
-	newCube[28] = { verts[6], colors[5] };
-	newCube[29] = { verts[7], colors[5] };
+	newCube[24] = { verts[5], colors[4] };
+	newCube[25] = { verts[4], colors[4] };
+	newCube[26] = { verts[7], colors[4] };
+									 
+	newCube[27] = { verts[4], colors[4] };
+	newCube[28] = { verts[6], colors[4] };
+	newCube[29] = { verts[7], colors[4] };
 
 	//dn 2-3-6 3-7-6  [4]
-	newCube[30] = { verts[2], colors[4] };
-	newCube[31] = { verts[3], colors[4] };
-	newCube[32] = { verts[6], colors[4] };
-
-	newCube[33] = { verts[3], colors[4] };
-	newCube[34] = { verts[7], colors[4] };
-	newCube[35] = { verts[6], colors[4] };
+	newCube[30] = { verts[2], colors[3] };
+	newCube[31] = { verts[3], colors[3] };
+	newCube[32] = { verts[6], colors[3] };
+									 
+	newCube[33] = { verts[3], colors[3] };
+	newCube[34] = { verts[7], colors[3] };
+	newCube[35] = { verts[6], colors[3] };
 
 
 
@@ -254,8 +276,8 @@ void Mush_Graphics::SetShaderInputlayout(ID3D11VertexShader **_vs, ID3D11PixelSh
 	char *vsByte, *psByte;
 	size_t vs_t, ps_t;
 	
-	LoadCompiledShaderData(&vsByte, vs_t, "E:\\Repos\\EngineDevRepo\\EngineDev\\EngineDev_GDD379\\Debug\\VS_Default.cso");
-	LoadCompiledShaderData(&psByte, ps_t, "E:\\Repos\\EngineDevRepo\\EngineDev\\EngineDev_GDD379\\Debug\\PS_Default.cso");
+	LoadCompiledShaderData(&vsByte, vs_t, "..\\Debug\\VS_Default.cso");
+	LoadCompiledShaderData(&psByte, ps_t, "..\\Debug\\PS_Default.cso");
 
 	m_iDevice->CreateVertexShader(vsByte, vs_t, NULL, _vs);
 	m_iDevice->CreatePixelShader(psByte, ps_t, NULL, _ps);
@@ -300,35 +322,40 @@ void Mush_Graphics::SetPipeline(){
 	InitViewport(m_viewPort, BACKBUFFER_WIDTH, BACKBUFFER_HEIGHT);
 }
 
-void Mush_Graphics::InitViewport(D3D11_VIEWPORT &_viewport, FLOAT _w, FLOAT _h, FLOAT TopLeftX, FLOAT TopLeftY,FLOAT _minDepth, FLOAT MaxDepth) {
+void Mush_Graphics::InitViewport(D3D11_VIEWPORT &_viewport, FLOAT _w, FLOAT _h, FLOAT TopLeftX, FLOAT TopLeftY, FLOAT _minDepth, FLOAT _maxDepth) {
 	ZeroMemory(&_viewport, sizeof(_viewport));
 	_viewport.Height = _h;
 	_viewport.Width = _w;
-	_viewport.TopLeftX = ;
-	_viewport.TopLeftY = BACKBUFFER_HEIGHT - hovCam_view.Height;
-	_viewport.MinDepth = 0.0f;
-	_viewport.MaxDepth = 1.0f;
+	_viewport.TopLeftX = TopLeftX;
+	_viewport.TopLeftY = TopLeftY;
+	_viewport.MinDepth = _minDepth;
+	_viewport.MaxDepth = _maxDepth;
 }
 
 bool Mush_Graphics::Render(){
 
-	ID3D11Buffer *newCube;
-	CreateDefaultCube(&newCube);
-	XMMATRIX cube_matrix;
-	cube_matrix = XMMatrixIdentity();
-	toshader_Default.model = cube_matrix;
-	m_iDeviceContext->UpdateSubresource(m_cBuff_perspective, 0, NULL, &toshader_Default, 0, 0);
+	turn += 0.0002;
 
+	XMMATRIX cube_matrix;
+	cube_matrix = XMMatrixRotationRollPitchYaw(turn*xR, turn*yR, turn*zR);;
+	toshader_Default.model = cube_matrix;
 
 	UINT _startSlot = 0;
 	UINT _numBuffs = 1;
 	UINT _strides = 0;
 	UINT _offSets = 0;
 	_strides = static_cast<UINT>(sizeof(VERTEX_PosCol));
+	D3D11_MAPPED_SUBRESOURCE map_cube;
+	ZeroMemory(&map_cube, sizeof(D3D11_MAPPED_SUBRESOURCE));
+	m_iDeviceContext->Map(m_cBuff_perspective, 0, D3D11_MAP::D3D11_MAP_WRITE_DISCARD, NULL, &map_cube);
+	memcpy(map_cube.pData, &toshader_Default, sizeof(toshader_Default));
+	m_iDeviceContext->Unmap(m_cBuff_perspective, 0);
+
+	m_iDeviceContext->ClearDepthStencilView(default_pipeline.depthStencilView, D3D11_CLEAR_DEPTH, 1, NULL);
 
 
 	// IA Stage
-	m_iDeviceContext->IASetVertexBuffers(0, 1, &newCube, &_strides, &_offSets);
+	m_iDeviceContext->IASetVertexBuffers(0, 1, &m_vb_Cube, &_strides, &_offSets);
 	//m_iDeviceContext->IASetIndexBuffer(ib_Box, DXGI_FORMAT_R32_UINT, 0);
 	m_iDeviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY::D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 	m_iDeviceContext->IASetInputLayout(default_pipeline.input_layout);
@@ -363,8 +390,8 @@ bool Mush_Graphics::Render(){
 	FLOAT DarkBlue[] = { 0.1f, 0.1f, 0.1f, 1.0f };
 	FLOAT Black[] = { 0.2f, 0.2f, 0.2f, 1.0f };
 	m_iDeviceContext->ClearRenderTargetView(default_pipeline.render_target, DarkBlue);
-	m_iDeviceContext->DrawIndexed(36, 0, 0);
+	m_iDeviceContext->Draw(36, 0);
 
-
+	m_swapChain->Present(0, 0);
 	return false;
 }

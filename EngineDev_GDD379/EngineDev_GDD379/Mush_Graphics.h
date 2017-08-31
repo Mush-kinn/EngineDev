@@ -8,6 +8,17 @@
 class Mush_Graphics
 {
 private:
+
+
+
+	float turn;
+	float xR, yR, zR;
+
+
+
+
+
+
 	// Matrices
 	XMFLOAT4X4 m_view;
 	XMFLOAT4X4 m_Projection;
@@ -54,7 +65,7 @@ private:
 public:
 	Mush_Graphics();
 	~Mush_Graphics();
-
+	void Init();
 	struct pipeline_state_t
 	{
 		ID3D11InputLayout *input_layout;
@@ -78,7 +89,7 @@ public:
 
 	void InitViewport(D3D11_VIEWPORT &_viewport, FLOAT _w, FLOAT _h,
 		FLOAT TopLeftX = 0, FLOAT TopLeftY = 0,
-		FLOAT _minDepth = 0, FLOAT MaxDepth = 1);
+		FLOAT _minDepth = 0, FLOAT _maxDepth = 1);
 
 	void SetPipeline();
 	void SetPipeline(pipeline_state_t *_pipe);
