@@ -117,5 +117,9 @@ public:
 	bool Render();
 	bool Update();
 
+	private:
+		void MushLookAt(const XMFLOAT4 &_view, const XMFLOAT4 &_target, XMMATRIX &_out);
+		void MushTurnTo(const XMMATRIX &_view, const XMVECTOR _target, int _turn, XMMATRIX _out);
+
 };
 

@@ -633,14 +633,22 @@ bool Mush_Graphics::Update(){
 
 		temp = XMMatrixIdentity();
 		temp = temp * XMMatrixTranslation(m_newCamOffset.x, 0, m_newCamOffset.z);
-		temp = temp * XMLoadFloat4x4(&m_Spinny);
-		XMStoreFloat4x4(&m_CubeWorld, temp);
+		if (mahKeys[VK_NUMPAD7]){
+			XMMATRIX look;
+			XMFLOAT4 pos;
+			XMStoreFloat4(&pos, XMLoadFloat4x4(&m_Spinny).r[3]);
+			MushLookAt(pos, XMFLOAT4(0, 0, 0, 1), look);
+			temp = temp * look;
+			XMStoreFloat4x4(&m_CubeWorld, temp);
+		}
+		else{
+			temp = temp * XMLoadFloat4x4(&m_Spinny);
+			XMStoreFloat4x4(&m_CubeWorld, temp);
+		}
 		//XMStoreFloat4x4(&m_BoxWorld, XMMatrixTranslationFromVector(Trans));
 	}
 
-
-
-
+	
 
 	if (MStatus == LOCKED){
 		int tempx = BACKBUFFER_WIDTH*0.5f;
@@ -668,4 +676,29 @@ void Mush_Graphics::UpdateMouseInput(tagPOINTS _points){
 
 		std::cout << _points.x << " [][] " << _points.y << "\n";
 	}
+}
+
+void Mush_Graphics::MushLookAt(const XMFLOAT4 &_view, const XMFLOAT4 &_target, XMMATRIX &_out){
+	XMVECTOR newZ, newX, up;
+	newZ = XMLoadFloat3(&XMFLOAT3(_target.x - _view.x, _target.y - _view.y, _target.z - _view.z));
+	newZ = XMVector3Normalize(newZ);
+
+	up = XMLoadFloat3(&XMFLOAT3(0, 1, 0));
+
+	newX = XMVector3Cross(up, newZ);
+	newX = XMVector3Normalize(newX);
+
+	up = XMVector3Cross(newZ, newX);
+	up = XMVector3Normalize(up);
+
+	_out.r[0] = newX;
+	_out.r[1] = up;
+	_out.r[2] = newZ;
+	_out.r[3] = XMLoadFloat4(&_view);
+
+}
+
+void Mush_Graphics::MushTurnTo(const XMMATRIX &_view, const XMVECTOR _target, int _turn, XMMATRIX _out){
+	XMFLOAT4 V, T, W;
+	XMStoreFloat4(&V, _view.r[3]);
 }
