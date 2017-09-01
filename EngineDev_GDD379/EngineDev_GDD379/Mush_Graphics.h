@@ -1,23 +1,31 @@
 #pragma once
 #include "stdafx.h"
 #include "SharedDefines.h"
+#include "XTime.h"
 
 #define BACKBUFFER_WIDTH	1280.0f
 #define BACKBUFFER_HEIGHT	720.0f
+
+enum MouseAccess{ OPEN, CLOSED };
+enum MouseStatus{ LOCKED, FREE };
 
 class Mush_Graphics
 {
 private:
 
-
-
+	float speed = 4;
 	float turn;
 	float xR, yR, zR;
+	
 
+	static tagPOINTS CurrMouse;
+	tagPOINTS PrevMouse;
 
-
-
-
+	XTime m_timeX;
+	static bool mahKeys[256];
+	static std::vector<UINT> KeyStateON;
+	static std::vector<UINT> KeyStateOFF;
+	MouseStatus MStatus = MouseStatus::FREE;
 
 	// Matrices
 	XMFLOAT4X4 m_view;
@@ -63,6 +71,10 @@ private:
 	cbMirror_Perspective toshader_Default;
 
 public:
+	static void UpdateKeyboardInput(UINT _key, bool _state, bool _toggle = false);
+	static void UpdateMouseInput(tagPOINTS _point);
+	static MouseAccess mAccess;
+
 	Mush_Graphics();
 	~Mush_Graphics();
 	void Init();
@@ -100,8 +112,10 @@ public:
 	void SetRasterizerState(ID3D11RasterizerState **_rasterstate, ID3D11RenderTargetView **_RTV);
 	void SetShaderInputlayout(ID3D11VertexShader **_vs, ID3D11PixelShader **_ps, ID3D11InputLayout **_input);
 	BOOL LoadCompiledShaderData(char **byteCode, size_t &byteCodeSize, const char *fileName);
+	void ReleasePipeline(pipeline_state_t *_pipe);
 
 	bool Render();
+	bool Update();
 
 };
 

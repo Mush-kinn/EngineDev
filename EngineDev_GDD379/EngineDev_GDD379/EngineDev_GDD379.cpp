@@ -71,6 +71,7 @@ int APIENTRY _tWinMain(_In_ HINSTANCE hInstance,
 		}
 		else
 		{
+			Graph.Update();
 			Graph.Render();
 			// In the future, do per frame/tick updates here...
 		}
@@ -166,8 +167,51 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 	case WM_DESTROY:
 		PostQuitMessage(0);
 		break;
+	case (WM_KEYDOWN) :
+		switch (wParam)
+		{
+			case VK_A: Mush_Graphics::UpdateKeyboardInput(VK_A, true); break;
+			case VK_W: Mush_Graphics::UpdateKeyboardInput(VK_W, true); break;
+			case VK_S: Mush_Graphics::UpdateKeyboardInput(VK_S, true); break;
+			case VK_D: Mush_Graphics::UpdateKeyboardInput(VK_D, true); break;
+			case VK_E: Mush_Graphics::UpdateKeyboardInput(VK_E, true); break;
+			case VK_Q: Mush_Graphics::UpdateKeyboardInput(VK_Q, true); break;
+			case VK_T: Mush_Graphics::UpdateKeyboardInput(VK_T, true, true); break;
+			case VK_CONTROL: Mush_Graphics::UpdateKeyboardInput(VK_CONTROL, true, true); break;
+			case VK_NUMPAD2: Mush_Graphics::UpdateKeyboardInput(VK_NUMPAD2, true); break;
+			case VK_NUMPAD4: Mush_Graphics::UpdateKeyboardInput(VK_NUMPAD4, true); break;
+			case VK_NUMPAD6: Mush_Graphics::UpdateKeyboardInput(VK_NUMPAD6, true); break;
+			case VK_NUMPAD8: Mush_Graphics::UpdateKeyboardInput(VK_NUMPAD8, true); break;
+			default:	break;
+		}
+		break;
 
-
+	case (WM_KEYUP) :
+		switch (wParam)
+		{
+			case VK_A: Mush_Graphics::UpdateKeyboardInput(VK_A, false); break;
+			case VK_W: Mush_Graphics::UpdateKeyboardInput(VK_W, false); break;
+			case VK_S: Mush_Graphics::UpdateKeyboardInput(VK_S, false); break;
+			case VK_D: Mush_Graphics::UpdateKeyboardInput(VK_D, false); break;
+			case VK_E: Mush_Graphics::UpdateKeyboardInput(VK_E, false); break;
+			case VK_Q: Mush_Graphics::UpdateKeyboardInput(VK_Q, false); break;
+			case VK_T: Mush_Graphics::UpdateKeyboardInput(VK_T, false, true); break;
+			case VK_CONTROL: Mush_Graphics::UpdateKeyboardInput(VK_CONTROL, false, true); break;
+			case VK_NUMPAD2: Mush_Graphics::UpdateKeyboardInput(VK_NUMPAD2, false); break;
+			case VK_NUMPAD4: Mush_Graphics::UpdateKeyboardInput(VK_NUMPAD4, false); break;
+			case VK_NUMPAD6: Mush_Graphics::UpdateKeyboardInput(VK_NUMPAD6, false); break;
+			case VK_NUMPAD8: Mush_Graphics::UpdateKeyboardInput(VK_NUMPAD8, false); break;
+			default:		break;
+		}
+		break;
+	case (WM_MOUSEMOVE) : {
+		if (Mush_Graphics::mAccess == NULL){
+			auto temp = MAKEPOINTS(lParam);
+			std::cout << "Poteto\n";
+			Mush_Graphics::UpdateMouseInput(temp);
+		}
+		break;
+	}
 	default:
 		return DefWindowProc(hWnd, message, wParam, lParam);
 	}

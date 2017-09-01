@@ -18,6 +18,7 @@
 #include <tchar.h>
 #include <fstream>
 #include <d3d11.h>
+#include <Windows.h>
 
 
 // TODO: reference additional headers your program requires here
@@ -25,4 +26,5 @@
 #pragma comment(lib,"d3d11.lib")
 #include "AlphaDefines.h"
 #include <DirectXMath.h>
+#include <vector>
 using namespace DirectX;
