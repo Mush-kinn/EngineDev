@@ -25,7 +25,7 @@ void Mush_Graphics::UpdateKeyboardInput(UINT _key, bool _state, bool _toggle){
 
 Mush_Graphics::Mush_Graphics()
 { 
-
+	XMStoreFloat4x4(&m_CubeWorld, XMMatrixIdentity());
 }
 
 
@@ -425,7 +425,18 @@ bool Mush_Graphics::Render(){
 	FLOAT DarkBlue[] = { 0.1f, 0.1f, 0.1f, 1.0f };
 	FLOAT Black[] = { 0.2f, 0.2f, 0.2f, 1.0f };
 	m_iDeviceContext->ClearRenderTargetView(default_pipeline.render_target, DarkBlue);
+
 	m_iDeviceContext->Draw(36, 0);
+
+
+	toshader_Default.model = XMMatrixTranspose( XMLoadFloat4x4(&m_CubeWorld));
+	
+	ZeroMemory(&map_cube, sizeof(D3D11_MAPPED_SUBRESOURCE));
+	m_iDeviceContext->Map(m_cBuff_perspective, 0, D3D11_MAP::D3D11_MAP_WRITE_DISCARD, NULL, &map_cube);
+	memcpy(map_cube.pData, &toshader_Default, sizeof(toshader_Default));
+	m_iDeviceContext->Unmap(m_cBuff_perspective, 0);
+	m_iDeviceContext->Draw(36, 0);
+
 
 	m_swapChain->Present(0, 0);
 	return false;
@@ -486,16 +497,8 @@ bool Mush_Graphics::Update(){
 		if (MStatus == LOCKED){
 			int dx, dy;
 
-
-			std::cout << PrevMouse.x << " []PrevMouse[] " << PrevMouse.y << "\n";
-			std::cout << CurrMouse.x << " []CurrMouse[] " << CurrMouse.y << "\n";
-
 			dx = CurrMouse.x - PrevMouse.x;
 			dy = CurrMouse.y - PrevMouse.y;
-
-			std::cout << dx << " [][] " << dy << "\n";
-
-
 			temp = XMMatrixRotationY(XMConvertToRadians(dx * sDelt)) *temp;
 			//temp = XMMatrixRotationX(XMConvertToRadians(dy * sDelt)) *temp;
 			//int tempx = BACKBUFFER_WIDTH*0.5f;
@@ -518,7 +521,7 @@ bool Mush_Graphics::Update(){
 		temp = temp * XMMatrixTranslation(0, m_newCamOffset.y, 0) * XMMatrixTranslationFromVector(Trans);
 
 		if (MStatus == LOCKED){
-			float dx, dy;
+			int dx, dy;
 			dx = CurrMouse.x - PrevMouse.x;
 			dy = CurrMouse.y - PrevMouse.y;
 			//temp = XMMatrixRotationY(XMConvertToRadians(dx * sDelt)) *temp;
@@ -559,6 +562,85 @@ bool Mush_Graphics::Update(){
 		//XMStoreFloat4x4(&m_BoxWorld, XMMatrixTranslationFromVector(aVector));
 
 	}
+
+
+	ZeroMemory(&m_newCamOffset, sizeof(m_newCamOffset));
+	// CUBE
+	if (!mahKeys[VK_T]){
+		temp = XMMatrixIdentity();
+
+		if (mahKeys[VK_LEFT])
+			m_newCamOffset.x -= speed * sDelt;
+		if (mahKeys[VK_RIGHT])
+			m_newCamOffset.x += speed * sDelt;
+		if (mahKeys[VK_UP])
+			m_newCamOffset.z += speed * sDelt;
+		if (mahKeys[VK_DOWN])
+			m_newCamOffset.z -= speed * sDelt;
+		if (mahKeys[NULL])
+			m_newCamOffset.y -= speed * sDelt;
+		if (mahKeys[NULL])
+			m_newCamOffset.y += speed * sDelt;
+
+		if (MStatus == LOCKED){
+			int dx, dy;
+
+			dx = CurrMouse.x - PrevMouse.x;
+			dy = CurrMouse.y - PrevMouse.y;
+			temp = XMMatrixRotationY(XMConvertToRadians(dx * sDelt)) *temp;
+			//temp = XMMatrixRotationX(XMConvertToRadians(dy * sDelt)) *temp;
+			//int tempx = BACKBUFFER_WIDTH*0.5f;
+			//int tempy = BACKBUFFER_HEIGHT*0.5f;
+			//SetCursorPos(tempx, tempy);
+			//PrevMouse.x = tempx;
+			//PrevMouse.y = tempy;
+			//CurrMouse = PrevMouse;
+		}
+		else{
+			if (mahKeys[NULL])
+				temp = XMMatrixRotationY(XMConvertToRadians(-90 * sDelt)) *temp;
+			if (mahKeys[NULL])
+				temp = XMMatrixRotationY(XMConvertToRadians(90 * sDelt)) *temp;
+		}
+
+		INverted = XMLoadFloat4x4(&m_CubeWorld);
+		XMMatrixDecompose(&Scale, &Rot, &Trans, INverted);
+		temp = XMMatrixScalingFromVector(Scale) * XMMatrixRotationQuaternion(Rot) * temp;
+		temp = temp * XMMatrixTranslation(0, m_newCamOffset.y, 0) * XMMatrixTranslationFromVector(Trans);
+
+		if (MStatus == LOCKED){
+			float dx, dy;
+			dx = CurrMouse.x - PrevMouse.x;
+			dy = CurrMouse.y - PrevMouse.y;
+			//temp = XMMatrixRotationY(XMConvertToRadians(dx * sDelt)) *temp;
+			temp = XMMatrixRotationX(XMConvertToRadians(dy * sDelt)) *temp;
+			//int tempx = BACKBUFFER_WIDTH*0.5f;
+			//int tempy = BACKBUFFER_HEIGHT*0.5f;
+			//SetCursorPos(tempx, tempy);
+			//PrevMouse.x = tempx;
+			//PrevMouse.y = tempy;
+			//CurrMouse = PrevMouse;
+		}
+		else{
+			if (mahKeys[NULL])
+				temp = XMMatrixRotationX(XMConvertToRadians(-90 * sDelt)) * temp;
+			if (mahKeys[NULL])
+				temp = XMMatrixRotationX(XMConvertToRadians(90 * sDelt)) * temp;
+		}
+		XMFLOAT4 MAX(1, 1, 1, 1), MIN(-1, 0, -1, 0);
+		temp.r[1] = XMVectorClamp(temp.r[1], XMLoadFloat4(&MIN), XMLoadFloat4(&MAX));
+		XMStoreFloat4x4(&m_Spinny, temp);
+
+		temp = XMMatrixIdentity();
+		temp = temp * XMMatrixTranslation(m_newCamOffset.x, 0, m_newCamOffset.z);
+		temp = temp * XMLoadFloat4x4(&m_Spinny);
+		XMStoreFloat4x4(&m_CubeWorld, temp);
+		//XMStoreFloat4x4(&m_BoxWorld, XMMatrixTranslationFromVector(Trans));
+	}
+
+
+
+
 
 	if (MStatus == LOCKED){
 		int tempx = BACKBUFFER_WIDTH*0.5f;

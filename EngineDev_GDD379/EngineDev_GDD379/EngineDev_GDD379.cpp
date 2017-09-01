@@ -182,6 +182,10 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			case VK_NUMPAD4: Mush_Graphics::UpdateKeyboardInput(VK_NUMPAD4, true); break;
 			case VK_NUMPAD6: Mush_Graphics::UpdateKeyboardInput(VK_NUMPAD6, true); break;
 			case VK_NUMPAD8: Mush_Graphics::UpdateKeyboardInput(VK_NUMPAD8, true); break;
+			case VK_RIGHT: Mush_Graphics::UpdateKeyboardInput(VK_RIGHT, true); break;
+			case VK_LEFT: Mush_Graphics::UpdateKeyboardInput(VK_LEFT, true); break;
+			case VK_UP: Mush_Graphics::UpdateKeyboardInput(VK_UP, true); break;
+			case VK_DOWN: Mush_Graphics::UpdateKeyboardInput(VK_DOWN, true); break;
 			default:	break;
 		}
 		break;
@@ -195,12 +199,16 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			case VK_D: Mush_Graphics::UpdateKeyboardInput(VK_D, false); break;
 			case VK_E: Mush_Graphics::UpdateKeyboardInput(VK_E, false); break;
 			case VK_Q: Mush_Graphics::UpdateKeyboardInput(VK_Q, false); break;
-			case VK_T: Mush_Graphics::UpdateKeyboardInput(VK_T, false, true); break;
+			//case VK_T: Mush_Graphics::UpdateKeyboardInput(VK_T, false, true); break;
 			case VK_CONTROL: Mush_Graphics::UpdateKeyboardInput(VK_CONTROL, false, true); break;
 			case VK_NUMPAD2: Mush_Graphics::UpdateKeyboardInput(VK_NUMPAD2, false); break;
 			case VK_NUMPAD4: Mush_Graphics::UpdateKeyboardInput(VK_NUMPAD4, false); break;
 			case VK_NUMPAD6: Mush_Graphics::UpdateKeyboardInput(VK_NUMPAD6, false); break;
 			case VK_NUMPAD8: Mush_Graphics::UpdateKeyboardInput(VK_NUMPAD8, false); break;
+			case VK_RIGHT: Mush_Graphics::UpdateKeyboardInput(VK_RIGHT, false); break;
+			case VK_LEFT: Mush_Graphics::UpdateKeyboardInput(VK_LEFT, false); break;
+			case VK_UP: Mush_Graphics::UpdateKeyboardInput(VK_UP, false); break;
+			case VK_DOWN: Mush_Graphics::UpdateKeyboardInput(VK_DOWN, false); break;
 			default:		break;
 		}
 		break;
