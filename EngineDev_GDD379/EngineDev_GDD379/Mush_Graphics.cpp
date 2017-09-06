@@ -30,6 +30,8 @@ Mush_Graphics::Mush_Graphics()
 
 
 void Mush_Graphics::Init(){
+
+	testing = new Debug_Renderer(m_iDevice, m_iDeviceContext);
 	m_Tracker_Up = XMFLOAT3(0, 1, 0);
 	m_Tracker_Pos = XMFLOAT3(0, 0, 0);
 	m_Tracker_Tgt = XMFLOAT3(0, 0, 0);
@@ -103,6 +105,7 @@ void Mush_Graphics::ReleasePipeline(pipeline_state_t *_pipe){
 
 Mush_Graphics::~Mush_Graphics()
 {
+	delete testing;
 	OutputDebugStringW(L"\n\n\n <Detailed Dump> \n\n");
 
 	m_iDeviceContext->ClearState();
@@ -377,7 +380,7 @@ bool Mush_Graphics::Render(){
 	
 	m_timeX.Throttle(60);
 
-	turn += 0.0002f;
+	turn += 0.001f;
 
 	XMMATRIX cube_matrix;
 	cube_matrix = XMMatrixRotationRollPitchYaw(turn*xR, turn*yR, turn*zR);;
@@ -692,6 +695,10 @@ bool Mush_Graphics::Update(){
 		std::cout << PrevMouse.x << " [] Reset - PrevMouse[] " << PrevMouse.y << "\n";
 	}
 
+	if (testing != NULL && false){
+		VERTEX_PosCol tmp,tmp2;
+	}
+
 	mAccess = OPEN;
 	ZeroMemory(&m_newCamOffset, sizeof(m_newCamOffset));
 	return true;
@@ -700,9 +707,7 @@ bool Mush_Graphics::Update(){
 
 void Mush_Graphics::UpdateMouseInput(tagPOINTS _points){
 	if (mAccess == OPEN && (CurrMouse.x != _points.x || CurrMouse.y != _points.y)){
-
 		CurrMouse = _points;
-
 		std::cout << _points.x << " []UpdateMouseInput[] " << _points.y << "\n";
 	}
 }
@@ -731,17 +736,65 @@ void Mush_Graphics::MushTurnTo(const XMMATRIX &_view, const XMVECTOR _target, in
 	XMFLOAT4 V, T, W,W2;
 
 	XMVECTOR tempo = XMVectorSubtract(_target, _view.r[3]);
-	tempo = XMVector4Normalize(tempo);
+	tempo = XMVector3Normalize(tempo);
 
-	XMStoreFloat4(&V, XMVector4Dot(tempo, _view.r[0]));
+	XMStoreFloat4(&V, XMVector3Dot(tempo, _view.r[0]));
 
 	if (V.w > 0.1f){
-		_out = XMMatrixRotationY(XMConvertToRadians(-turn)) * _view;
+		_out = XMMatrixRotationY(XMConvertToRadians(turn)) * _view;
 	}
 	else if (V.w < -0.1f){
-		_out = XMMatrixRotationY(XMConvertToRadians(turn)) * _view;
+		_out = XMMatrixRotationY(XMConvertToRadians(-turn)) * _view;
 	}
 	else {
 		_out = XMMatrixIdentity() * _view;
 	}
+}
+
+Mush_Graphics::Debug_Renderer::Debug_Renderer(ID3D11Device *_device, ID3D11DeviceContext * _context) 
+		: Max_verts(40), 
+		debug_device(_device), 
+		debug_context(_context) {
+	vert_count = 0;
+	cpu_buffer = new VERTEX_PosCol[Max_verts];
+	
+	D3D11_BUFFER_DESC desc;
+	ZeroMemory(&desc, sizeof(D3D11_BUFFER_DESC));
+	desc.BindFlags = D3D11_BIND_FLAG::D3D11_BIND_VERTEX_BUFFER;
+	desc.Usage = D3D11_USAGE::D3D11_USAGE_DYNAMIC;
+	desc.ByteWidth = sizeof(VERTEX_PosCol) * Max_verts;
+	desc.CPUAccessFlags = D3D11_CPU_ACCESS_FLAG::D3D11_CPU_ACCESS_WRITE;
+	
+	debug_device->CreateBuffer(&desc, NULL, &gpu_buffer);
+}
+
+Mush_Graphics::Debug_Renderer::~Debug_Renderer(){
+	gpu_buffer->Release();
+	delete[] cpu_buffer;
+}
+
+void Mush_Graphics::Debug_Renderer::add_line(VERTEX_PosCol a, VERTEX_PosCol b){
+	if (vert_count+2 >= Max_verts)
+		return;
+	cpu_buffer[vert_count++] = a;
+	cpu_buffer[vert_count++] = b;
+}
+
+void Mush_Graphics::Debug_Renderer::add_line(VERTEX_PosCol a, VERTEX_PosCol b, XMFLOAT4 _color){
+	if (vert_count + 2 >= Max_verts)
+		return;
+	a.color = b.color = _color;
+	cpu_buffer[vert_count++] = a;
+	cpu_buffer[vert_count++] = b;
+}
+
+unsigned int Mush_Graphics::Debug_Renderer::flush(){
+	D3D11_MAPPED_SUBRESOURCE map;
+	ZeroMemory(&map, sizeof(D3D11_MAPPED_SUBRESOURCE));
+	debug_context->Map(gpu_buffer, 1, D3D11_MAP::D3D11_MAP_WRITE_DISCARD, NULL, &map);
+	memcpy(&map, &cpu_buffer, sizeof(cpu_buffer));
+	debug_context->Unmap(gpu_buffer, NULL);
+	auto temp = vert_count;
+	vert_count = 0;
+	return temp;
 }

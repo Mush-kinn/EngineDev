@@ -11,8 +11,8 @@ enum MouseStatus{ LOCKED, FREE };
 
 class Mush_Graphics
 {
-private:
-
+protected:	
+	
 	float speed = 4;
 	float turn;
 	float xR, yR, zR;
@@ -82,6 +82,7 @@ public:
 	Mush_Graphics();
 	~Mush_Graphics();
 	void Init();
+
 	struct pipeline_state_t
 	{
 		ID3D11InputLayout *input_layout;
@@ -121,9 +122,29 @@ public:
 	bool Render();
 	bool Update();
 
-	private:
-		void MushLookAt(const XMFLOAT4 &_view, const XMFLOAT4 &_target, XMMATRIX &_out);
-		void MushTurnTo(const XMMATRIX &_view, const XMVECTOR _target, int _turn, XMMATRIX &_out);
+private:
+	void MushLookAt(const XMFLOAT4 &_view, const XMFLOAT4 &_target, XMMATRIX &_out);
+	void MushTurnTo(const XMMATRIX &_view, const XMVECTOR _target, int _turn, XMMATRIX &_out);
+
+protected:
+	class Debug_Renderer{
+		
+		ID3D11Device *debug_device;
+		ID3D11DeviceContext *debug_context;
+
+		const int Max_verts;
+		unsigned int vert_count = 0;
+		VERTEX_PosCol *cpu_buffer;
+		ID3D11Buffer *gpu_buffer;
+		void add_line(VERTEX_PosCol a, VERTEX_PosCol b);
+		void add_line(VERTEX_PosCol a, VERTEX_PosCol b, XMFLOAT4 _color);
+		unsigned int flush();
+
+	public:
+		Debug_Renderer(ID3D11Device *, ID3D11DeviceContext *);
+		Debug_Renderer(ID3D11Device *_device, unsigned int _size);
+		~Debug_Renderer();
+	} *testing;
+
 
 };
-
