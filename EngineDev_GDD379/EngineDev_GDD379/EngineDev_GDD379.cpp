@@ -71,9 +71,9 @@ int APIENTRY _tWinMain(_In_ HINSTANCE hInstance,
 		}
 		else
 		{
+			// In the future, do per frame/tick updates here...
 			Graph.Update();
 			Graph.Render();
-			// In the future, do per frame/tick updates here...
 		}
 	}
 
@@ -219,6 +219,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 	case (WM_MOUSEMOVE) : {
 		if (Mush_Graphics::mAccess == NULL){
 			auto temp = MAKEPOINTS(lParam);
+			
 			std::cout << "Poteto\n";
 			Mush_Graphics::UpdateMouseInput(temp);
 		}

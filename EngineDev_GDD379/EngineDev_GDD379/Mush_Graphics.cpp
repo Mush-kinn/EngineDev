@@ -374,8 +374,10 @@ void Mush_Graphics::InitViewport(D3D11_VIEWPORT &_viewport, FLOAT _w, FLOAT _h, 
 }
 
 bool Mush_Graphics::Render(){
+	
+	m_timeX.Throttle(60);
 
-	turn += 0.0002;
+	turn += 0.0002f;
 
 	XMMATRIX cube_matrix;
 	cube_matrix = XMMatrixRotationRollPitchYaw(turn*xR, turn*yR, turn*zR);;
@@ -466,29 +468,30 @@ bool Mush_Graphics::Update(){
 
 	// Hide mouse, enable mouse controlled camera movement
 	if (MStatus == MouseStatus::FREE && mahKeys[VK_CONTROL]){
-		ShowCursor(false);
+		//ShowCursor(false);
 		MStatus = MouseStatus::LOCKED;
 
 		tagPOINT temp;
-		temp.x = m_screen.right *0.5f;
-		temp.y = m_screen.bottom * 0.5f;
-		
-		SetCursorPos(temp.x, temp.y);
-		MapWindowPoints(m_desktop, m_window, &temp, 1);
-		ScreenToClient(m_window, &temp);
+		temp.x = BACKBUFFER_WIDTH * 0.5f;
+		temp.y = BACKBUFFER_HEIGHT * 0.5f;
+		std::cout << temp.x << " [] Init - Center []" << temp.y << "\n";
 
-		//int tempx = BACKBUFFER_WIDTH*0.5f;
-		//int tempy = BACKBUFFER_HEIGHT*0.5f;
+		ClientToScreen(m_window, &temp);
+		std::cout << temp.x << " [] Init - from Client " << temp.y << "\n";
+
+		SetCursorPos(temp.x, temp.y);
+		std::cout << temp.x << " [] Init - set []" << temp.y << "\n";
+
 		PrevMouse.x = temp.x;
 		PrevMouse.y = temp.y;
 		CurrMouse = PrevMouse;
 
-		std::cout << CurrMouse.x << " []Update - Hide_Init[] " << CurrMouse.y << "\n";
+		std::cout << PrevMouse.x << " [] Init - PrevMouse[] " << PrevMouse.y << "\n";
 
 	}
 	// Show mouse, disable mouse controlled camera movement
 	if (MStatus == MouseStatus::LOCKED && !mahKeys[VK_CONTROL]){
-		ShowCursor(true);
+		//ShowCursor(true);
 		MStatus = MouseStatus::FREE;
 	}
 
@@ -506,19 +509,6 @@ bool Mush_Graphics::Update(){
 	if (mahKeys[VK_E])
 		m_newCamOffset.y += speed * sDelt;
 
-	if (MStatus == LOCKED){
-		tagPOINT temp;
-		temp.x = CurrMouse.x;
-		temp.y = CurrMouse.y;
-
-		MapWindowPoints(m_desktop, m_window, &temp, 1);
-		SetCursorPos(temp.x, temp.y);
-		ScreenToClient(m_window, &temp);
-
-		CurrMouse.x = temp.x;
-		CurrMouse.y = temp.y;
-	}
-
 	XMMATRIX temp, INverted;
 	XMVECTOR Scale, Rot, Trans;
 	
@@ -526,13 +516,13 @@ bool Mush_Graphics::Update(){
 		temp = XMMatrixIdentity();
 
 		if (MStatus == LOCKED){
+
 			int dx, dy;
 
 			dx = CurrMouse.x - PrevMouse.x;
 			dy = CurrMouse.y - PrevMouse.y;
 
 			std::cout << dx << " []Update - yRotation[] " << dy << "\n";
-
 
 			temp = XMMatrixRotationY(XMConvertToRadians(dx * sDelt)) *temp;
 		}
@@ -555,18 +545,8 @@ bool Mush_Graphics::Update(){
 
 			std::cout << dx << " []Update - xRotation[] " << dy << "\n";
 
-			//temp = XMMatrixRotationY(XMConvertToRadians(dx * sDelt)) *temp;
 			temp = XMMatrixRotationX(XMConvertToRadians(dy * sDelt)) *temp;
-			//int tempx = BACKBUFFER_WIDTH*0.5f;
-			//int tempy = BACKBUFFER_HEIGHT*0.5f;
 
-			//int tempx = 0;
-			//int tempy = 0;
-
-			//SetCursorPos(tempx, tempy);
-			//PrevMouse.x = tempx;
-			//PrevMouse.y = tempy;
-			//CurrMouse = PrevMouse;
 		}
 		else{
 			if (mahKeys[VK_NUMPAD8])
@@ -690,39 +670,37 @@ bool Mush_Graphics::Update(){
 		}
 		//XMStoreFloat4x4(&m_BoxWorld, XMMatrixTranslationFromVector(Trans));
 	}
-
 	
 
 	if (MStatus == LOCKED){
 
 		tagPOINT temp;
-		temp.x = m_screen.right *0.5f;
-		temp.y = m_screen.bottom * 0.5f;
+		temp.x = BACKBUFFER_WIDTH *0.5f;
+		temp.y = BACKBUFFER_HEIGHT * 0.5f;
+		std::cout << temp.x << " [] Reset - Center []" << temp.y << "\n";
 
-		MapWindowPoints(m_desktop, m_window, &temp, 1);
+		ClientToScreen(m_window, &temp);
+		std::cout << temp.x << " [] Reset - from Client " << temp.y << "\n";
+
 		SetCursorPos(temp.x, temp.y);
-		ScreenToClient(m_window, &temp);
+		std::cout << temp.x << " [] Reset - set []" << temp.y << "\n";
 
-
-		//int tempx = BACKBUFFER_WIDTH*0.5f;
-		//int tempy = BACKBUFFER_HEIGHT*0.5f;
-		SetCursorPos(temp.x, temp.y);
 		PrevMouse.x = temp.x;
 		PrevMouse.y = temp.y;
 		CurrMouse = PrevMouse;
-		//PrevMouse = CurrMouse;
+		
 		std::cout << PrevMouse.x << " [] Reset - PrevMouse[] " << PrevMouse.y << "\n";
-		std::cout << CurrMouse.x << " [] Reset - CurrMouse[] " << CurrMouse.y << "\n";
 	}
 
-	ZeroMemory(&m_newCamOffset, sizeof(m_newCamOffset));
 	mAccess = OPEN;
+	ZeroMemory(&m_newCamOffset, sizeof(m_newCamOffset));
 	return true;
-
+	
 }
 
 void Mush_Graphics::UpdateMouseInput(tagPOINTS _points){
-	if (mAccess == OPEN){
+	if (mAccess == OPEN && (CurrMouse.x != _points.x || CurrMouse.y != _points.y)){
+
 		CurrMouse = _points;
 
 		std::cout << _points.x << " []UpdateMouseInput[] " << _points.y << "\n";
