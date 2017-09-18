@@ -28,3 +28,5 @@
 #include <DirectXMath.h>
 #include <vector>
 using namespace DirectX;
+#include <fbxsdk.h>
+

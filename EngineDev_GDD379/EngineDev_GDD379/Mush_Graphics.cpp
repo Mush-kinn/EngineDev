@@ -377,7 +377,7 @@ bool Mush_Graphics::Render(){
 	
 	m_timeX.Throttle(60);
 
-	turn += 0.0002f;
+	turn += 0.01f;
 
 	XMMATRIX cube_matrix;
 	cube_matrix = XMMatrixRotationRollPitchYaw(turn*xR, turn*yR, turn*zR);;
@@ -736,10 +736,10 @@ void Mush_Graphics::MushTurnTo(const XMMATRIX &_view, const XMVECTOR _target, in
 	XMStoreFloat4(&V, XMVector4Dot(tempo, _view.r[0]));
 
 	if (V.w > 0.1f){
-		_out = XMMatrixRotationY(XMConvertToRadians(-turn)) * _view;
+		_out = XMMatrixRotationY(XMConvertToRadians(turn)) * _view;
 	}
 	else if (V.w < -0.1f){
-		_out = XMMatrixRotationY(XMConvertToRadians(turn)) * _view;
+		_out = XMMatrixRotationY(XMConvertToRadians(-turn)) * _view;
 	}
 	else {
 		_out = XMMatrixIdentity() * _view;
