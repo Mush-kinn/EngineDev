@@ -121,9 +121,25 @@ public:
 	bool Render();
 	bool Update();
 
-	private:
-		void MushLookAt(const XMFLOAT4 &_view, const XMFLOAT4 &_target, XMMATRIX &_out);
-		void MushTurnTo(const XMMATRIX &_view, const XMVECTOR _target, int _turn, XMMATRIX &_out);
+private:
+	void MushLookAt(const XMFLOAT4 &_view, const XMFLOAT4 &_target, XMMATRIX &_out);
+	void MushTurnTo(const XMMATRIX &_view, const XMVECTOR _target, int _turn, XMMATRIX &_out);
+#if 0 //FBX
+private: 
+	int numTabs = 0;
+	FbxManager* FBX_Manager;
+	const char* FBX_FileName = "Assets\\BattleMage.fbx";
+	FbxScene* FBX_BattleMageScene;
+
+	void FBX_PrintTabs();
+	FbxString FBX_GetAttributeTypeName(FbxNodeAttribute::EType type);
+	void FBX_PrintAttribute(FbxNodeAttribute* pAttribute);
+	void FBX_PrintNode(FbxNode* pNode);
+	void FBX_Init_Import();
+
+
+#endif
+
 
 };
 

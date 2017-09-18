@@ -603,13 +603,6 @@ bool Mush_Graphics::Update(){
 			dx = CurrMouse.x - PrevMouse.x;
 			dy = CurrMouse.y - PrevMouse.y;
 			temp = XMMatrixRotationY(XMConvertToRadians(dx * sDelt)) *temp;
-			//temp = XMMatrixRotationX(XMConvertToRadians(dy * sDelt)) *temp;
-			//int tempx = BACKBUFFER_WIDTH*0.5f;
-			//int tempy = BACKBUFFER_HEIGHT*0.5f;
-			//SetCursorPos(tempx, tempy);
-			//PrevMouse.x = tempx;
-			//PrevMouse.y = tempy;
-			//CurrMouse = PrevMouse;
 		}
 		else{
 			if (mahKeys[NULL])
@@ -627,14 +620,7 @@ bool Mush_Graphics::Update(){
 			float dx, dy;
 			dx = CurrMouse.x - PrevMouse.x;
 			dy = CurrMouse.y - PrevMouse.y;
-			//temp = XMMatrixRotationY(XMConvertToRadians(dx * sDelt)) *temp;
 			temp = XMMatrixRotationX(XMConvertToRadians(dy * sDelt)) *temp;
-			//int tempx = BACKBUFFER_WIDTH*0.5f;
-			//int tempy = BACKBUFFER_HEIGHT*0.5f;
-			//SetCursorPos(tempx, tempy);
-			//PrevMouse.x = tempx;
-			//PrevMouse.y = tempy;
-			//CurrMouse = PrevMouse;
 		}
 		else{
 			if (mahKeys[NULL])
@@ -745,3 +731,102 @@ void Mush_Graphics::MushTurnTo(const XMMATRIX &_view, const XMVECTOR _target, in
 		_out = XMMatrixIdentity() * _view;
 	}
 }
+
+#if 0 // FBX
+
+void Mush_Graphics::FBX_PrintTabs(){
+	for (int i = 0; i < numTabs; i++)
+		printf("\t");
+}
+FbxString Mush_Graphics::FBX_GetAttributeTypeName(FbxNodeAttribute::EType type){
+	switch (type) {
+	case FbxNodeAttribute::eUnknown: return "unidentified";
+	case FbxNodeAttribute::eNull: return "null";
+	case FbxNodeAttribute::eMarker: return "marker";
+	case FbxNodeAttribute::eSkeleton: return "skeleton";
+	case FbxNodeAttribute::eMesh: return "mesh";
+	case FbxNodeAttribute::eNurbs: return "nurbs";
+	case FbxNodeAttribute::ePatch: return "patch";
+	case FbxNodeAttribute::eCamera: return "camera";
+	case FbxNodeAttribute::eCameraStereo: return "stereo";
+	case FbxNodeAttribute::eCameraSwitcher: return "camera switcher";
+	case FbxNodeAttribute::eLight: return "light";
+	case FbxNodeAttribute::eOpticalReference: return "optical reference";
+	case FbxNodeAttribute::eOpticalMarker: return "marker";
+	case FbxNodeAttribute::eNurbsCurve: return "nurbs curve";
+	case FbxNodeAttribute::eTrimNurbsSurface: return "trim nurbs surface";
+	case FbxNodeAttribute::eBoundary: return "boundary";
+	case FbxNodeAttribute::eNurbsSurface: return "nurbs surface";
+	case FbxNodeAttribute::eShape: return "shape";
+	case FbxNodeAttribute::eLODGroup: return "lodgroup";
+	case FbxNodeAttribute::eSubDiv: return "subdiv";
+	default: return "unknown";
+	}
+}
+void Mush_Graphics::FBX_PrintAttribute(FbxNodeAttribute* pAttribute){
+	if (!pAttribute) return;
+
+	FbxString typeName = FBX_GetAttributeTypeName(pAttribute->GetAttributeType());
+	FbxString attrName = pAttribute->GetName();
+	FBX_PrintTabs();
+	// Note: to retrieve the character array of a FbxString, use its Buffer() method.
+	printf("<attribute type='%s' name='%s'/>\n", typeName.Buffer(), attrName.Buffer());
+}
+void Mush_Graphics::FBX_PrintNode(FbxNode* pNode){
+	FBX_PrintTabs();
+	const char* nodeName = pNode->GetName();
+	FbxDouble3 translation = pNode->LclTranslation.Get();
+	FbxDouble3 rotation = pNode->LclRotation.Get();
+	FbxDouble3 scaling = pNode->LclScaling.Get();
+
+	// Print the contents of the node.
+	printf("<node name='%s' translation='(%f, %f, %f)' rotation='(%f, %f, %f)' scaling='(%f, %f, %f)'>\n",
+		nodeName,
+		translation[0], translation[1], translation[2],
+		rotation[0], rotation[1], rotation[2],
+		scaling[0], scaling[1], scaling[2]
+		);
+	numTabs++;
+
+	// Print the node's attributes.
+	for (int i = 0; i < pNode->GetNodeAttributeCount(); i++)
+		FBX_PrintAttribute(pNode->GetNodeAttributeByIndex(i));
+
+	// Recursively print the children.
+	for (int j = 0; j < pNode->GetChildCount(); j++)
+		FBX_PrintNode(pNode->GetChild(j));
+
+	numTabs--;
+	FBX_PrintTabs();
+	printf("</node>\n");
+}
+void Mush_Graphics::FBX_Init_Import(){
+
+	// Initialize the SDK manager. This object handles all our memory management.
+	FBX_Manager = FbxManager::Create();
+
+	// Create the IO settings object.
+	FbxIOSettings *ios = FbxIOSettings::Create(FBX_Manager, IOSROOT);
+	FBX_Manager->SetIOSettings(ios);
+
+	// Create an importer using the SDK manager.
+	FbxImporter* lImporter = FbxImporter::Create(FBX_Manager, "");
+
+	// Use the first argument as the filename for the importer.
+	if (!lImporter->Initialize(FBX_FileName, -1, FBX_Manager->GetIOSettings())) {
+		printf("Call to FbxImporter::Initialize() failed.\n");
+		printf("Error returned: %s\n\n", lImporter->GetStatus().GetErrorString());
+		exit(-1);
+	}
+
+	// Create a new scene so that it can be populated by the imported file.
+	FBX_BattleMageScene = FbxScene::Create(FBX_Manager, "myScene");
+
+	// Import the contents of the file into the scene.
+	lImporter->Import(FBX_BattleMageScene);
+
+	// The file is imported; so get rid of the importer.
+	lImporter->Destroy();
+}
+
+#endif
