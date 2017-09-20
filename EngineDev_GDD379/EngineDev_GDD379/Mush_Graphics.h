@@ -9,6 +9,8 @@
 enum MouseAccess{ OPEN, CLOSED };
 enum MouseStatus{ LOCKED, FREE };
 
+enum M_MODEL { W_DEFAULT, W_CUBE, W_TOTAL};
+enum M_CAMERA { DEFAULT_VIEW, DEFAULT_PROJECTION, TOTAL};
 class Mush_Graphics
 {
 protected:	

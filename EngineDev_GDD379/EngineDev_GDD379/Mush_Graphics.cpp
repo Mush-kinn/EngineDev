@@ -440,7 +440,6 @@ bool Mush_Graphics::Render(){
 
 	m_iDeviceContext->Draw(36, 0);
 
-
 	toshader_Default.model = XMMatrixTranspose( XMLoadFloat4x4(&m_CubeWorld));
 	
 	ZeroMemory(&map_cube, sizeof(D3D11_MAPPED_SUBRESOURCE));
