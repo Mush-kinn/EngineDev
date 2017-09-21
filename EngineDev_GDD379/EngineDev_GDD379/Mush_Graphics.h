@@ -6,10 +6,15 @@
 #define BACKBUFFER_WIDTH	1280.0f
 #define BACKBUFFER_HEIGHT	720.0f
 
+#define DEBUG_SAMPLER 0
+
+
+
+
 enum MouseAccess{ OPEN, CLOSED };
 enum MouseStatus{ LOCKED, FREE };
 
-enum M_MODEL { W_DEFAULT, W_CUBE, W_TOTAL};
+enum M_MODEL { W_DEFAULT, W_MovingCUBE, W_TOTAL };
 enum M_CAMERA { DEFAULT_VIEW, DEFAULT_PROJECTION, TOTAL};
 class Mush_Graphics
 {
@@ -34,12 +39,14 @@ protected:
 	MouseStatus MStatus = MouseStatus::FREE;
 
 	// Matrices
+	std::vector<XMFLOAT4X4> *m_Tranforms;
 	XMFLOAT4X4 m_view;
 	XMFLOAT4X4 m_Projection;
 	XMFLOAT4X4 m_CubeWorld;
 	XMFLOAT4X4 m_Spinny;
 
 	// Vectors
+	std::vector<XMFLOAT3> *m_Vectors;
 	XMFLOAT3 m_newCamOffset;
 	XMFLOAT3 m_Tracker_Up;
 	XMFLOAT3 m_Tracker_Pos;
@@ -124,9 +131,9 @@ public:
 	bool Render();
 	bool Update();
 
-private:
-	void MushLookAt(const XMFLOAT4 &_view, const XMFLOAT4 &_target, XMMATRIX &_out);
-	void MushTurnTo(const XMMATRIX &_view, const XMVECTOR _target, int _turn, XMMATRIX &_out);
+	private:
+		void MushLookAt(const XMFLOAT4 &_view, const XMFLOAT4 &_target, XMMATRIX &_out);
+		void MushTurnTo(const XMMATRIX &_view, const XMVECTOR _target, float _turn, XMMATRIX &_out);
 
 protected:
 	class Debug_Renderer{

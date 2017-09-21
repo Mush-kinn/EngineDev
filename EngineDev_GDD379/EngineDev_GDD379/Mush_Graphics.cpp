@@ -26,16 +26,10 @@ void Mush_Graphics::UpdateKeyboardInput(UINT _key, bool _state, bool _toggle){
 Mush_Graphics::Mush_Graphics()
 { 
 	XMStoreFloat4x4(&m_CubeWorld, XMMatrixIdentity());
-}
-
-
-void Mush_Graphics::Init(){
-
-	testing = new Debug_Renderer(m_iDevice, m_iDeviceContext);
 	m_Tracker_Up = XMFLOAT3(0, 1, 0);
 	m_Tracker_Pos = XMFLOAT3(0, 0, 0);
 	m_Tracker_Tgt = XMFLOAT3(0, 0, 0);
-	
+
 	m_view = XMFLOAT4X4(
 		1.0f, 0.0f, 0.0f, 0.0f,
 		0.0f, 1.0f, 0.0f, 0.0f,
@@ -49,13 +43,23 @@ void Mush_Graphics::Init(){
 	toshader_Default.view = XMMatrixTranspose(view);
 	XMStoreFloat4x4(&m_view, view);
 
-	// zNear = 0.1;
-	// zFar = 10
-	// vFOV = 90
 	float aspect = BACKBUFFER_WIDTH / BACKBUFFER_HEIGHT;
-	projection = XMMatrixPerspectiveFovLH(XMConvertToRadians(60.0f), aspect, 0.1f, 100.0f);
+	projection = XMMatrixPerspectiveFovLH(XMConvertToRadians(90.0f), aspect, 0.1f, 100.0f);
 	toshader_Default.projection = XMMatrixTranspose(projection);
 	XMStoreFloat4x4(&m_Projection, projection);
+
+	// Get a handle to the desktop window
+	m_desktop = GetDesktopWindow();
+	GetWindowRect(m_desktop, &m_screen);
+
+	turn = 1;
+	xR = 1;
+	yR = 2;
+	zR = 1;
+}
+
+
+void Mush_Graphics::Init(){
 
 	D3D11_BUFFER_DESC cb_3d;
 	ZeroMemory(&cb_3d, sizeof(D3D11_BUFFER_DESC));
@@ -67,29 +71,19 @@ void Mush_Graphics::Init(){
 
 	m_iDevice->QueryInterface(IID_PPV_ARGS(&Debuger));
 
-	// Get a handle to the desktop window
-	m_desktop = GetDesktopWindow();
-	GetWindowRect(m_desktop, &m_screen);	
-
-	//D3D11_SAMPLER_DESC sampler_desc;
-	//ZeroMemory(&sampler_desc, sizeof(D3D11_SAMPLER_DESC));
-	//sampler_desc.Filter = D3D11_FILTER::D3D11_FILTER_MIN_MAG_MIP_LINEAR;
-	//sampler_desc.AddressU = D3D11_TEXTURE_ADDRESS_WRAP;
-	//sampler_desc.AddressV = D3D11_TEXTURE_ADDRESS_WRAP;
-	//sampler_desc.AddressW = D3D11_TEXTURE_ADDRESS_WRAP;
-	//sampler_desc.MinLOD = 0;
-	//sampler_desc.MaxLOD = Test_UV_Map_numlevels;
-	//sampler_desc.ComparisonFunc = D3D11_COMPARISON_FUNC::D3D11_COMPARISON_GREATER_EQUAL;
-
-	//iDevice->CreateSamplerState(&sampler_desc, &m_SampleState);
-
+#if DEBUG_SAMPLER
+	D3D11_SAMPLER_DESC sampler_desc;
+	ZeroMemory(&sampler_desc, sizeof(D3D11_SAMPLER_DESC));
+	sampler_desc.Filter = D3D11_FILTER::D3D11_FILTER_MIN_MAG_MIP_LINEAR;
+	sampler_desc.AddressU = D3D11_TEXTURE_ADDRESS_WRAP;
+	sampler_desc.AddressV = D3D11_TEXTURE_ADDRESS_WRAP;
+	sampler_desc.AddressW = D3D11_TEXTURE_ADDRESS_WRAP;
+	sampler_desc.MinLOD = 0;
+	sampler_desc.MaxLOD = Test_UV_Map_numlevels;
+	sampler_desc.ComparisonFunc = D3D11_COMPARISON_FUNC::D3D11_COMPARISON_GREATER_EQUAL;
+	iDevice->CreateSamplerState(&sampler_desc, &m_SampleState);
+#endif
 	CreateDefaultCube(&m_vb_Cube);
-
-	turn = 0.04f;
-	xR = 1;
-	yR = 2;
-	zR = 3;
-	m_timeX.Throttle(60);
 }
 
 void Mush_Graphics::ReleasePipeline(pipeline_state_t *_pipe){
@@ -380,10 +374,11 @@ bool Mush_Graphics::Render(){
 	
 	m_timeX.Throttle(60);
 
-	turn += 0.001f;
+	turn += 0.5f;
+	float sDelt = (float)m_timeX.SmoothDelta();
 
 	XMMATRIX cube_matrix;
-	cube_matrix = XMMatrixRotationRollPitchYaw(turn*xR, turn*yR, turn*zR);;
+	cube_matrix = XMMatrixRotationRollPitchYaw(turn*xR*sDelt, turn*yR*sDelt, turn*zR*sDelt);;
 	toshader_Default.model = cube_matrix;
 	toshader_Default.view = XMMatrixTranspose( XMLoadFloat4x4(&m_view));
 
@@ -396,8 +391,8 @@ bool Mush_Graphics::Render(){
 	ZeroMemory(&map_cube, sizeof(D3D11_MAPPED_SUBRESOURCE));
 	m_iDeviceContext->Map(m_cBuff_perspective, 0, D3D11_MAP::D3D11_MAP_WRITE_DISCARD, NULL, &map_cube);
 	memcpy(map_cube.pData, &toshader_Default, sizeof(toshader_Default));
+	
 	m_iDeviceContext->Unmap(m_cBuff_perspective, 0);
-
 	m_iDeviceContext->ClearDepthStencilView(default_pipeline.depthStencilView, D3D11_CLEAR_DEPTH, 1, NULL);
 
 
@@ -537,8 +532,11 @@ bool Mush_Graphics::Update(){
 
 		INverted = XMMatrixInverse(NULL, XMLoadFloat4x4(&m_view));
 		XMMatrixDecompose(&Scale, &Rot, &Trans, INverted);
-		temp = XMMatrixScalingFromVector(Scale) * XMMatrixRotationQuaternion(Rot) * temp;
-		temp = temp * XMMatrixTranslation(0, m_newCamOffset.y, 0) * XMMatrixTranslationFromVector(Trans);
+
+		temp = XMMatrixScalingFromVector(Scale) 
+			* XMMatrixRotationQuaternion(Rot) * temp
+			* XMMatrixTranslation(0, m_newCamOffset.y, 0) 
+			* XMMatrixTranslationFromVector(Trans);
 
 		if (MStatus == LOCKED){
 			int dx, dy;
@@ -560,9 +558,14 @@ bool Mush_Graphics::Update(){
 		temp.r[1] = XMVectorClamp(temp.r[1], XMLoadFloat4(&MIN), XMLoadFloat4(&MAX));
 		XMStoreFloat4x4(&m_Spinny, temp);
 
-		temp = XMMatrixIdentity();
-		temp = temp * XMMatrixTranslation(m_newCamOffset.x, 0, m_newCamOffset.z);
-		temp = temp * XMLoadFloat4x4(&m_Spinny);
+		//temp = XMMatrixIdentity();
+		//temp = temp * XMMatrixTranslation(m_newCamOffset.x, 0, m_newCamOffset.z);
+		//temp = temp * XMLoadFloat4x4(&m_Spinny);
+
+		temp = XMMatrixIdentity() 
+			* XMMatrixTranslation(m_newCamOffset.x, 0, m_newCamOffset.z)
+			* XMLoadFloat4x4(&m_Spinny);
+
 		XMStoreFloat4x4(&m_view, XMMatrixInverse(NULL, temp));
 		//XMStoreFloat4x4(&m_BoxWorld, XMMatrixTranslationFromVector(Trans));
 	}
@@ -662,10 +665,10 @@ bool Mush_Graphics::Update(){
 		// TURN-TO
 		else if (mahKeys[VK_NUMPAD9]){
 			temp = temp * XMLoadFloat4x4(&m_Spinny);
-			MushTurnTo(temp, XMLoadFloat4(&XMFLOAT4(0, 0, 0, 1)), sDelt * 0.000001f, temp);
+			MushTurnTo(temp, XMLoadFloat4(&XMFLOAT4(0, 0, 0, 1)), sDelt * 10, temp);
 			XMStoreFloat4x4(&m_CubeWorld, temp);
 		}
-		// Inactive: Free Camera
+		// Free Camera. Inactive.
 		else{
 			temp = temp * XMLoadFloat4x4(&m_Spinny);
 			XMStoreFloat4x4(&m_CubeWorld, temp);
@@ -731,7 +734,7 @@ void Mush_Graphics::MushLookAt(const XMFLOAT4 &_view, const XMFLOAT4 &_target, X
 
 }
 
-void Mush_Graphics::MushTurnTo(const XMMATRIX &_view, const XMVECTOR _target, int _turn, XMMATRIX &_out){
+void Mush_Graphics::MushTurnTo(const XMMATRIX &_view, const XMVECTOR _target, float _turn, XMMATRIX &_out){
 	XMFLOAT4 V, T, W,W2;
 
 	XMVECTOR tempo = XMVectorSubtract(_target, _view.r[3]);
@@ -740,10 +743,10 @@ void Mush_Graphics::MushTurnTo(const XMMATRIX &_view, const XMVECTOR _target, in
 	XMStoreFloat4(&V, XMVector3Dot(tempo, _view.r[0]));
 
 	if (V.w > 0.1f){
-		_out = XMMatrixRotationY(XMConvertToRadians(turn)) * _view;
+		_out = XMMatrixRotationY(XMConvertToRadians(_turn)) * _view;
 	}
 	else if (V.w < -0.1f){
-		_out = XMMatrixRotationY(XMConvertToRadians(-turn)) * _view;
+		_out = XMMatrixRotationY(XMConvertToRadians(-_turn)) * _view;
 	}
 	else {
 		_out = XMMatrixIdentity() * _view;

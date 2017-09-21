@@ -156,9 +156,9 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 //
 LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
-	int wmId, wmEvent;
+	/*int wmId, wmEvent;
 	PAINTSTRUCT ps;
-	HDC hdc;
+	HDC hdc;*/
 
 	if (GetAsyncKeyState(VK_ESCAPE))
 		message = WM_DESTROY;
