@@ -503,7 +503,7 @@ bool Mush_Graphics::Update(){
 		// TURN-TO
 		else if (mahKeys[VK_NUMPAD9]){
 			temp = temp * XMLoadFloat4x4(&m_Spinny);
-			MushTurnTo(temp, XMLoadFloat4(&XMFLOAT4(0, 0, 0, 1)), sDelt * 10, temp);
+			MushTurnTo(temp, XMLoadFloat4(&XMFLOAT4(0, 0, 0, 1)), sDelt * 20, temp);
 			XMStoreFloat4x4(&m_Tranforms[E_TRANSFORMS::W_MovingCUBE], temp);
 		}
 		// Mouse look
@@ -611,22 +611,45 @@ void Mush_Graphics::MushLookAt(const XMFLOAT4 &_view, const XMFLOAT4 &_target, X
 }
 
 void Mush_Graphics::MushTurnTo(const XMMATRIX &_view, const XMVECTOR _target, float _turn, XMMATRIX &_out){
-	XMFLOAT4 V, T, W,W2;
-
+	XMFLOAT4 V, T;
+	XMVECTOR scale, tran, rot;
+	float pitch, yaw;
 	XMVECTOR tempo = XMVectorSubtract(_target, _view.r[3]);
 	tempo = XMVector3Normalize(tempo);
 
 	XMStoreFloat4(&V, XMVector3Dot(tempo, _view.r[0]));
+	XMStoreFloat4(&T, XMVector3Dot(tempo, _view.r[1]));
+
+	XMMATRIX Setup;
+
 
 	if (V.w > 0.1f){
-		_out = XMMatrixRotationY(XMConvertToRadians(_turn)) * _view;
+		yaw = XMConvertToRadians(_turn);
 	}
 	else if (V.w < -0.1f){
-		_out = XMMatrixRotationY(XMConvertToRadians(-_turn)) * _view;
+		yaw = XMConvertToRadians(-_turn);
 	}
 	else {
-		_out = XMMatrixIdentity() * _view;
+		yaw = 0;
 	}
+
+	if (T.w > 0.1f){
+		pitch = XMConvertToRadians(-_turn);
+	}
+	else if (T.w < -0.1f){
+		pitch = XMConvertToRadians(_turn);
+	}
+	else {
+		pitch = 0;
+	}
+
+	XMMatrixDecompose(&scale, &rot, &tran, _view);
+	_out = XMMatrixRotationRollPitchYaw(pitch,0,0) 
+		*  XMMatrixScalingFromVector(scale) 
+		* XMMatrixRotationQuaternion(rot) 
+		*  XMMatrixRotationRollPitchYaw(0, yaw, 0) 
+		* XMMatrixTranslationFromVector(tran);
+
 }
 #define amin -90
 #define amax 90
