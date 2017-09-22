@@ -79,7 +79,6 @@ protected:
 
 public:
 	static void UpdateKeyboardInput(UINT _key, bool _state, bool _toggle = false);
-	static void UpdateMouseInput(tagPOINTS _point);
 	static MouseAccess mAccess;
 
 	Mush_Graphics();
@@ -128,6 +127,7 @@ public:
 	private:
 		void MushLookAt(const XMFLOAT4 &_view, const XMFLOAT4 &_target, XMMATRIX &_out);
 		void MushTurnTo(const XMMATRIX &_view, const XMVECTOR _target, float _turn, XMMATRIX &_out);
+		void MushMouseLook(const XMMATRIX &_view, const float dx, const float dy, XMMATRIX &_out);
 
 protected:
 	class Debug_Renderer{
@@ -147,7 +147,7 @@ protected:
 		Debug_Renderer(ID3D11Device *, ID3D11DeviceContext *);
 		Debug_Renderer(ID3D11Device *_device, unsigned int _size);
 		~Debug_Renderer();
-	} *testing;
+	} ;
 
 
 };

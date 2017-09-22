@@ -177,9 +177,10 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			case VK_E: Mush_Graphics::UpdateKeyboardInput(VK_E, true); break;
 			case VK_Q: Mush_Graphics::UpdateKeyboardInput(VK_Q, true); break;
 			//case VK_T: Mush_Graphics::UpdateKeyboardInput(VK_T, true, true); break;
-			case VK_NUMPAD7: Mush_Graphics::UpdateKeyboardInput(VK_NUMPAD7, true, true); break;
 			case VK_CONTROL: Mush_Graphics::UpdateKeyboardInput(VK_CONTROL, true, true); break;
+			case VK_NUMPAD7: Mush_Graphics::UpdateKeyboardInput(VK_NUMPAD7, true, true); break;
 			case VK_NUMPAD9: Mush_Graphics::UpdateKeyboardInput(VK_NUMPAD9, true, true); break;
+			case VK_NUMPAD1: Mush_Graphics::UpdateKeyboardInput(VK_NUMPAD1, true, true); break;
 			case VK_NUMPAD2: Mush_Graphics::UpdateKeyboardInput(VK_NUMPAD2, true); break;
 			case VK_NUMPAD4: Mush_Graphics::UpdateKeyboardInput(VK_NUMPAD4, true); break;
 			case VK_NUMPAD6: Mush_Graphics::UpdateKeyboardInput(VK_NUMPAD6, true); break;
@@ -202,9 +203,10 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			case VK_E: Mush_Graphics::UpdateKeyboardInput(VK_E, false); break;
 			case VK_Q: Mush_Graphics::UpdateKeyboardInput(VK_Q, false); break;
 			//case VK_T: Mush_Graphics::UpdateKeyboardInput(VK_T, false, true); break;
-			case VK_NUMPAD7: Mush_Graphics::UpdateKeyboardInput(VK_NUMPAD7, false, true); break;
 			case VK_CONTROL: Mush_Graphics::UpdateKeyboardInput(VK_CONTROL, false, true); break;
+			case VK_NUMPAD7: Mush_Graphics::UpdateKeyboardInput(VK_NUMPAD7, false, true); break;
 			case VK_NUMPAD9: Mush_Graphics::UpdateKeyboardInput(VK_NUMPAD9, false, true); break;
+			case VK_NUMPAD1: Mush_Graphics::UpdateKeyboardInput(VK_NUMPAD1, false, true); break;
 			case VK_NUMPAD2: Mush_Graphics::UpdateKeyboardInput(VK_NUMPAD2, false); break;
 			case VK_NUMPAD4: Mush_Graphics::UpdateKeyboardInput(VK_NUMPAD4, false); break;
 			case VK_NUMPAD6: Mush_Graphics::UpdateKeyboardInput(VK_NUMPAD6, false); break;
@@ -216,15 +218,10 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			default:		break;
 		}
 		break;
-	case (WM_MOUSEMOVE) : {
-		if (Mush_Graphics::mAccess == NULL){
-			auto temp = MAKEPOINTS(lParam);
-			
-			std::cout << "Poteto\n";
-			Mush_Graphics::UpdateMouseInput(temp);
-		}
+	case (WM_MOUSEMOVE) : 
+		
 		break;
-	}
+		
 	default:
 		return DefWindowProc(hWnd, message, wParam, lParam);
 	}

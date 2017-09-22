@@ -32,24 +32,23 @@ Mush_Graphics::Mush_Graphics()
 	XMStoreFloat4x4(&m_Tranforms[E_TRANSFORMS::W_MovingCUBE], XMMatrixIdentity());
 	XMStoreFloat4x4(&m_Tranforms[E_TRANSFORMS::W_DEFAULT], XMMatrixIdentity());
 	m_Trackers[E_TRACKERS::UP_VEC] = XMFLOAT3(0, 1, 0);
-	//m_Tracker_Pos = XMFLOAT3(0, 0, 0);
 	m_Trackers[E_TRACKERS::ORIGIN_VEC] = XMFLOAT3(0, 0, 0);
 
 	m_Cameras[E_CAMERAS::DEFAULT_VIEW] = XMFLOAT4X4(
 		1.0f, 0.0f, 0.0f, 0.0f,
 		0.0f, 1.0f, 0.0f, 0.0f,
 		0.0f, 0.0f, 1.0f, 0.0f,
-		0.0f, 0.0f, -1.5f, 1.0f);
+		0.0f, 0.0f, 0.0f, 1.0f);
 
-	XMMATRIX rotation_trix, projection;
-	XMMATRIX view = XMLoadFloat4x4(&m_Cameras[E_CAMERAS::DEFAULT_VIEW]);
-	view = XMMatrixTranslation(0, 1, -5);
+	XMMATRIX projection, view;
+	view = XMLoadFloat4x4(&m_Cameras[E_CAMERAS::DEFAULT_VIEW]);
+	view = XMMatrixTranslation(0, 1, -6.5);
 	view = XMMatrixInverse(nullptr, view);
 	toshader_Default.view = XMMatrixTranspose(view);
 	XMStoreFloat4x4(&m_Cameras[E_CAMERAS::DEFAULT_VIEW], view);
 
 	float aspect = BACKBUFFER_WIDTH / BACKBUFFER_HEIGHT;
-	projection = XMMatrixPerspectiveFovLH(XMConvertToRadians(90.0f), aspect, 0.1f, 100.0f);
+	projection = XMMatrixPerspectiveFovLH(XMConvertToRadians(60.0f), aspect, 0.1f, 100.0f);
 	toshader_Default.projection = XMMatrixTranspose(projection);
 	XMStoreFloat4x4(&m_Cameras[E_CAMERAS::DEFAULT_PROJECTION], projection);
 
@@ -62,7 +61,6 @@ Mush_Graphics::Mush_Graphics()
 	yR = 2;
 	zR = 3;
 }
-
 
 void Mush_Graphics::Init(){
 
@@ -104,7 +102,7 @@ void Mush_Graphics::ReleasePipeline(pipeline_state_t *_pipe){
 
 Mush_Graphics::~Mush_Graphics()
 {
-	delete testing;
+	//delete testing;
 	OutputDebugStringW(L"\n\n\n <Detailed Dump> \n\n");
 
 	m_iDeviceContext->ClearState();
@@ -375,89 +373,9 @@ void Mush_Graphics::InitViewport(D3D11_VIEWPORT &_viewport, FLOAT _w, FLOAT _h, 
 	_viewport.MaxDepth = _maxDepth;
 }
 
-bool Mush_Graphics::Render(){
-	
-	m_timeX.Throttle(60);
-
-	turn = 0.5f;
-	float sDelt = (float)m_timeX.SmoothDelta();
-
-	XMMATRIX cube_matrix = XMLoadFloat4x4(&m_Tranforms[E_TRANSFORMS::W_DEFAULT]);
-	cube_matrix = XMMatrixRotationRollPitchYaw(turn*xR*sDelt, turn*yR*sDelt, turn*zR*sDelt) * cube_matrix;
-	toshader_Default.model = cube_matrix;
-	XMStoreFloat4x4(&m_Tranforms[E_TRANSFORMS::W_DEFAULT], cube_matrix);
-	toshader_Default.view = XMMatrixTranspose(XMLoadFloat4x4(&m_Cameras[E_CAMERAS::DEFAULT_VIEW]));
-
-	UINT _startSlot = 0;
-	UINT _numBuffs = 1;
-	UINT _strides = 0;
-	UINT _offSets = 0;
-	_strides = static_cast<UINT>(sizeof(VERTEX_PosCol));
-	D3D11_MAPPED_SUBRESOURCE map_cube;
-	ZeroMemory(&map_cube, sizeof(D3D11_MAPPED_SUBRESOURCE));
-	m_iDeviceContext->Map(m_cBuff_perspective, 0, D3D11_MAP::D3D11_MAP_WRITE_DISCARD, NULL, &map_cube);
-	memcpy(map_cube.pData, &toshader_Default, sizeof(toshader_Default));
-	
-	m_iDeviceContext->Unmap(m_cBuff_perspective, 0);
-	m_iDeviceContext->ClearDepthStencilView(default_pipeline.depthStencilView, D3D11_CLEAR_DEPTH, 1, NULL);
-
-
-	// IA Stage
-	m_iDeviceContext->IASetVertexBuffers(0, 1, &m_vb_Cube, &_strides, &_offSets);
-	//m_iDeviceContext->IASetIndexBuffer(ib_Box, DXGI_FORMAT_R32_UINT, 0);
-	m_iDeviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY::D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-	m_iDeviceContext->IASetInputLayout(default_pipeline.input_layout);
-
-
-	// VS Stage
-	m_iDeviceContext->VSSetConstantBuffers(0, 1, &m_cBuff_perspective);
-	m_iDeviceContext->VSSetShader(default_pipeline.vertex_shader, NULL, NULL);
-
-#if 0
-	// GS Stage
-	m_iDeviceContext->GSSetShader(GeoSha_Prototype, NULL, NULL);
-	m_iDeviceContext->GSSetConstantBuffers(0, 1, &cBuff_perspective);
-#endif
-
-	// PS Stage
-	//m_iDeviceContext->PSSetConstantBuffers(0, 1, &m_cBuff_perspective);
-	//m_iDeviceContext->PSSetConstantBuffers(1, 1, &cBuff_lighting);
-	//m_iDeviceContext->PSSetSamplers(0, 1, &SampleState);
-	m_iDeviceContext->PSSetShader(default_pipeline.pixel_shader, NULL, NULL);
-	//m_iDeviceContext->PSSetShaderResources(0, 1, &ShaderView);
-	//m_iDeviceContext->PSSetShaderResources(1, 1, &SkyboxView);
-
-	// RS Stage
-	m_iDeviceContext->RSSetState(default_pipeline.rasterState);
-	m_iDeviceContext->RSSetViewports(1, &m_viewPort);
-
-	// OM Stage
-	m_iDeviceContext->OMSetRenderTargets(1, &default_pipeline.render_target, default_pipeline.depthStencilView );
-
-	// Draw Stage
-	FLOAT DarkBlue[] = { 0.1f, 0.1f, 0.1f, 1.0f };
-	FLOAT Black[] = { 0.2f, 0.2f, 0.2f, 1.0f };
-	m_iDeviceContext->ClearRenderTargetView(default_pipeline.render_target, DarkBlue);
-
-	m_iDeviceContext->Draw(36, 0);
-
-	toshader_Default.model = XMMatrixTranspose( XMLoadFloat4x4(&m_Tranforms[E_TRANSFORMS::W_MovingCUBE]));
-	
-	ZeroMemory(&map_cube, sizeof(D3D11_MAPPED_SUBRESOURCE));
-	m_iDeviceContext->Map(m_cBuff_perspective, 0, D3D11_MAP::D3D11_MAP_WRITE_DISCARD, NULL, &map_cube);
-	memcpy(map_cube.pData, &toshader_Default, sizeof(toshader_Default));
-	m_iDeviceContext->Unmap(m_cBuff_perspective, 0);
-	m_iDeviceContext->Draw(36, 0);
-
-
-	m_swapChain->Present(0, 0);
-	return false;
-}
-
 bool Mush_Graphics::Update(){
 
 	m_timeX.Signal();
-	mAccess = CLOSED;
 
 	while (!KeyStateON.empty())
 	{
@@ -467,35 +385,6 @@ bool Mush_Graphics::Update(){
 	while (!KeyStateOFF.empty()){
 		mahKeys[KeyStateOFF.back()] = false;
 		KeyStateOFF.pop_back();
-	}
-
-	// Hide mouse, enable mouse controlled camera movement
-	if (MStatus == MouseStatus::FREE && mahKeys[VK_CONTROL]){
-		//ShowCursor(false);
-		MStatus = MouseStatus::LOCKED;
-
-		tagPOINT temp;
-		temp.x = BACKBUFFER_WIDTH * 0.5f;
-		temp.y = BACKBUFFER_HEIGHT * 0.5f;
-		std::cout << temp.x << " [] Init - Center []" << temp.y << "\n";
-
-		ClientToScreen(m_window, &temp);
-		std::cout << temp.x << " [] Init - from Client " << temp.y << "\n";
-
-		SetCursorPos(temp.x, temp.y);
-		std::cout << temp.x << " [] Init - set []" << temp.y << "\n";
-
-		PrevMouse.x = temp.x;
-		PrevMouse.y = temp.y;
-		CurrMouse = PrevMouse;
-
-		std::cout << PrevMouse.x << " [] Init - PrevMouse[] " << PrevMouse.y << "\n";
-
-	}
-	// Show mouse, disable mouse controlled camera movement
-	if (MStatus == MouseStatus::LOCKED && !mahKeys[VK_CONTROL]){
-		//ShowCursor(true);
-		MStatus = MouseStatus::FREE;
 	}
 
 	float sDelt = (float)m_timeX.SmoothDelta();
@@ -518,23 +407,11 @@ bool Mush_Graphics::Update(){
 	if (!mahKeys[VK_T]){
 		temp = XMMatrixIdentity();
 
-		if (MStatus == LOCKED){
-
-			int dx, dy;
-
-			dx = CurrMouse.x - PrevMouse.x;
-			dy = CurrMouse.y - PrevMouse.y;
-
-			std::cout << dx << " []Update - yRotation[] " << dy << "\n";
-
-			temp = XMMatrixRotationY(XMConvertToRadians(dx * sDelt)) *temp;
-		}
-		else{
-			if (mahKeys[VK_NUMPAD4])
-				temp = XMMatrixRotationY(XMConvertToRadians(-90 * sDelt)) *temp;
-			if (mahKeys[VK_NUMPAD6])
-				temp = XMMatrixRotationY(XMConvertToRadians(90 * sDelt)) *temp;
-		}
+		if (mahKeys[VK_NUMPAD4])
+			temp = XMMatrixRotationY(XMConvertToRadians(-90 * sDelt)) *temp;
+		if (mahKeys[VK_NUMPAD6])
+			temp = XMMatrixRotationY(XMConvertToRadians(90 * sDelt)) *temp;
+		
 
 		INverted = XMMatrixInverse(NULL, XMLoadFloat4x4(&m_Cameras[E_CAMERAS::DEFAULT_VIEW]));
 		XMMatrixDecompose(&Scale, &Rot, &Trans, INverted);
@@ -544,22 +421,11 @@ bool Mush_Graphics::Update(){
 			* XMMatrixTranslation(0, m_newCamOffset.y, 0) 
 			* XMMatrixTranslationFromVector(Trans);
 
-		if (MStatus == LOCKED){
-			int dx, dy;
-			dx = CurrMouse.x - PrevMouse.x;
-			dy = CurrMouse.y - PrevMouse.y;
-
-			std::cout << dx << " []Update - xRotation[] " << dy << "\n";
-
-			temp = XMMatrixRotationX(XMConvertToRadians(dy * sDelt)) *temp;
-
-		}
-		else{
-			if (mahKeys[VK_NUMPAD8])
-				temp = XMMatrixRotationX(XMConvertToRadians(-90 * sDelt)) * temp;
-			if (mahKeys[VK_NUMPAD2])
-				temp = XMMatrixRotationX(XMConvertToRadians(90 * sDelt)) * temp;
-		}
+		if (mahKeys[VK_NUMPAD8])
+			temp = XMMatrixRotationX(XMConvertToRadians(-90 * sDelt)) * temp;
+		if (mahKeys[VK_NUMPAD2])
+			temp = XMMatrixRotationX(XMConvertToRadians(90 * sDelt)) * temp;
+		
 		XMFLOAT4 MAX(1, 1, 1, 1), MIN(-1, 0, -1, 0);
 		temp.r[1] = XMVectorClamp(temp.r[1], XMLoadFloat4(&MIN), XMLoadFloat4(&MAX));
 		XMMATRIX m_Spinny = temp;
@@ -585,7 +451,7 @@ bool Mush_Graphics::Update(){
 
 
 	ZeroMemory(&m_newCamOffset, sizeof(m_newCamOffset));
-	// CUBE
+	// Moving cube CUBE
 	if (!mahKeys[VK_T]){
 		temp = XMMatrixIdentity();
 
@@ -602,57 +468,29 @@ bool Mush_Graphics::Update(){
 		if (mahKeys[NULL])
 			m_newCamOffset.y += speed * sDelt;
 
-		if (MStatus == LOCKED & false){
-			int dx, dy;
 
-			dx = CurrMouse.x - PrevMouse.x;
-			dy = CurrMouse.y - PrevMouse.y;
-			temp = XMMatrixRotationY(XMConvertToRadians(dx * sDelt)) *temp;
-			//temp = XMMatrixRotationX(XMConvertToRadians(dy * sDelt)) *temp;
-			//int tempx = BACKBUFFER_WIDTH*0.5f;
-			//int tempy = BACKBUFFER_HEIGHT*0.5f;
-			//SetCursorPos(tempx, tempy);
-			//PrevMouse.x = tempx;
-			//PrevMouse.y = tempy;
-			//CurrMouse = PrevMouse;
-		}
-		else{
-			if (mahKeys[NULL])
-				temp = XMMatrixRotationY(XMConvertToRadians(-90 * sDelt)) *temp;
-			if (mahKeys[NULL])
-				temp = XMMatrixRotationY(XMConvertToRadians(90 * sDelt)) *temp;
-		}
+		if (mahKeys[NULL])
+			temp = XMMatrixRotationY(XMConvertToRadians(-90 * sDelt)) *temp;
+		if (mahKeys[NULL])
+			temp = XMMatrixRotationY(XMConvertToRadians(90 * sDelt)) *temp;
+		
 
 		INverted = XMLoadFloat4x4(&m_Tranforms[E_TRANSFORMS::W_MovingCUBE]);
 		XMMatrixDecompose(&Scale, &Rot, &Trans, INverted);
 		temp = XMMatrixScalingFromVector(Scale) * XMMatrixRotationQuaternion(Rot) * temp;
 		temp = temp * XMMatrixTranslation(0, m_newCamOffset.y, 0) * XMMatrixTranslationFromVector(Trans);
 
-		if (MStatus == LOCKED && false){
-			float dx, dy;
-			dx = CurrMouse.x - PrevMouse.x;
-			dy = CurrMouse.y - PrevMouse.y;
-			//temp = XMMatrixRotationY(XMConvertToRadians(dx * sDelt)) *temp;
-			temp = XMMatrixRotationX(XMConvertToRadians(dy * sDelt)) *temp;
-			//int tempx = BACKBUFFER_WIDTH*0.5f;
-			//int tempy = BACKBUFFER_HEIGHT*0.5f;
-			//SetCursorPos(tempx, tempy);
-			//PrevMouse.x = tempx;
-			//PrevMouse.y = tempy;
-			//CurrMouse = PrevMouse;
-		}
-		else{
-			if (mahKeys[NULL])
-				temp = XMMatrixRotationX(XMConvertToRadians(-90 * sDelt)) * temp;
-			if (mahKeys[NULL])
-				temp = XMMatrixRotationX(XMConvertToRadians(90 * sDelt)) * temp;
-		}
+		if (mahKeys[NULL])
+			temp = XMMatrixRotationX(XMConvertToRadians(-90 * sDelt)) * temp;
+		if (mahKeys[NULL])
+			temp = XMMatrixRotationX(XMConvertToRadians(90 * sDelt)) * temp;
+		
 		XMFLOAT4 MAX(1, 1, 1, 1), MIN(-1, 0, -1, 0);
 		temp.r[1] = XMVectorClamp(temp.r[1], XMLoadFloat4(&MIN), XMLoadFloat4(&MAX));
 		XMStoreFloat4x4(&m_Spinny, temp);
 
-		temp = XMMatrixIdentity();
-		temp = temp * XMMatrixTranslation(m_newCamOffset.x, 0, m_newCamOffset.z);
+		temp = XMMatrixIdentity() * XMMatrixTranslation(m_newCamOffset.x, 0, m_newCamOffset.z);
+
 		// LOOK-AT
 		if (mahKeys[VK_NUMPAD7]){
 			XMMATRIX look;
@@ -668,50 +506,88 @@ bool Mush_Graphics::Update(){
 			MushTurnTo(temp, XMLoadFloat4(&XMFLOAT4(0, 0, 0, 1)), sDelt * 10, temp);
 			XMStoreFloat4x4(&m_Tranforms[E_TRANSFORMS::W_MovingCUBE], temp);
 		}
-		// Free Camera. Inactive.
+		// Mouse look
+		else if (mahKeys[VK_NUMPAD1]){
+			POINT del;
+			GetCursorPos(&del);
+			temp = temp * XMLoadFloat4x4(&m_Spinny);
+			MushMouseLook(temp, (float)del.x, (float)del.y, temp);
+			XMStoreFloat4x4(&m_Tranforms[E_TRANSFORMS::W_MovingCUBE], temp);
+		}
 		else{
 			temp = temp * XMLoadFloat4x4(&m_Spinny);
 			XMStoreFloat4x4(&m_Tranforms[E_TRANSFORMS::W_MovingCUBE], temp);
 		}
-		//XMStoreFloat4x4(&m_BoxWorld, XMMatrixTranslationFromVector(Trans));
 	}
-	
+	turn = 0.5f;
+	XMMATRIX cube_matrix = XMLoadFloat4x4(&m_Tranforms[E_TRANSFORMS::W_DEFAULT]);
+	cube_matrix = XMMatrixRotationRollPitchYaw(turn*xR*sDelt, turn*yR*sDelt, turn*zR*sDelt) * cube_matrix;
+	XMStoreFloat4x4(&m_Tranforms[E_TRANSFORMS::W_DEFAULT], cube_matrix);
 
-	if (MStatus == LOCKED){
-
-		tagPOINT temp;
-		temp.x = BACKBUFFER_WIDTH *0.5f;
-		temp.y = BACKBUFFER_HEIGHT * 0.5f;
-		std::cout << temp.x << " [] Reset - Center []" << temp.y << "\n";
-
-		ClientToScreen(m_window, &temp);
-		std::cout << temp.x << " [] Reset - from Client " << temp.y << "\n";
-
-		SetCursorPos(temp.x, temp.y);
-		std::cout << temp.x << " [] Reset - set []" << temp.y << "\n";
-
-		PrevMouse.x = temp.x;
-		PrevMouse.y = temp.y;
-		CurrMouse = PrevMouse;
-		
-		std::cout << PrevMouse.x << " [] Reset - PrevMouse[] " << PrevMouse.y << "\n";
-	}
-
-	if (testing != NULL && false){
-		VERTEX_PosCol tmp,tmp2;
-	}
-
-	mAccess = OPEN;
 	ZeroMemory(&m_newCamOffset, sizeof(m_newCamOffset));
 	return true;
-	
 }
 
-void Mush_Graphics::UpdateMouseInput(tagPOINTS _points){
-	if (mAccess == OPEN && (CurrMouse.x != _points.x || CurrMouse.y != _points.y)){
-		CurrMouse = _points;
-		std::cout << _points.x << " []UpdateMouseInput[] " << _points.y << "\n";
-	}
+bool Mush_Graphics::Render(){
+	
+	m_timeX.Throttle(60);	
+
+	toshader_Default.model = XMLoadFloat4x4(&m_Tranforms[E_TRANSFORMS::W_DEFAULT]);
+	toshader_Default.view = XMMatrixTranspose(XMLoadFloat4x4(&m_Cameras[E_CAMERAS::DEFAULT_VIEW]));
+
+	UINT _startSlot = 0;
+	UINT _numBuffs = 1;
+	UINT _strides = 0;
+	UINT _offSets = 0;
+	_strides = static_cast<UINT>(sizeof(VERTEX_PosCol));
+	D3D11_MAPPED_SUBRESOURCE map_cube;
+	ZeroMemory(&map_cube, sizeof(D3D11_MAPPED_SUBRESOURCE));
+	m_iDeviceContext->Map(m_cBuff_perspective, 0, D3D11_MAP::D3D11_MAP_WRITE_DISCARD, NULL, &map_cube);
+	memcpy(map_cube.pData, &toshader_Default, sizeof(toshader_Default));
+	
+	m_iDeviceContext->Unmap(m_cBuff_perspective, 0);
+	m_iDeviceContext->ClearDepthStencilView(default_pipeline.depthStencilView, D3D11_CLEAR_DEPTH, 1, NULL);
+
+	// IA Stage
+	m_iDeviceContext->IASetVertexBuffers(0, 1, &m_vb_Cube, &_strides, &_offSets);
+	m_iDeviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY::D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+	m_iDeviceContext->IASetInputLayout(default_pipeline.input_layout);
+
+
+	// VS Stage
+	m_iDeviceContext->VSSetConstantBuffers(0, 1, &m_cBuff_perspective);
+	m_iDeviceContext->VSSetShader(default_pipeline.vertex_shader, NULL, NULL);
+
+	// GS Stage
+
+	// PS Stage
+	//m_iDeviceContext->PSSetSamplers(0, 1, &SampleState);
+	m_iDeviceContext->PSSetShader(default_pipeline.pixel_shader, NULL, NULL);
+
+	// RS Stage
+	m_iDeviceContext->RSSetState(default_pipeline.rasterState);
+	m_iDeviceContext->RSSetViewports(1, &m_viewPort);
+
+	// OM Stage
+	m_iDeviceContext->OMSetRenderTargets(1, &default_pipeline.render_target, default_pipeline.depthStencilView );
+
+	// Draw Stage
+	FLOAT DarkBlue[] = { 0.1f, 0.1f, 0.1f, 1.0f };
+	FLOAT Black[] = { 0.2f, 0.2f, 0.2f, 1.0f };
+	m_iDeviceContext->ClearRenderTargetView(default_pipeline.render_target, DarkBlue);
+
+	m_iDeviceContext->Draw(36, 0);
+
+	toshader_Default.model = XMMatrixTranspose( XMLoadFloat4x4(&m_Tranforms[E_TRANSFORMS::W_MovingCUBE]));
+	
+	ZeroMemory(&map_cube, sizeof(D3D11_MAPPED_SUBRESOURCE));
+	m_iDeviceContext->Map(m_cBuff_perspective, 0, D3D11_MAP::D3D11_MAP_WRITE_DISCARD, NULL, &map_cube);
+	memcpy(map_cube.pData, &toshader_Default, sizeof(toshader_Default));
+	m_iDeviceContext->Unmap(m_cBuff_perspective, 0);
+	m_iDeviceContext->Draw(36, 0);
+
+	m_swapChain->Present(0, 0);
+	return false;
 }
 
 void Mush_Graphics::MushLookAt(const XMFLOAT4 &_view, const XMFLOAT4 &_target, XMMATRIX &_out){
@@ -751,4 +627,14 @@ void Mush_Graphics::MushTurnTo(const XMMATRIX &_view, const XMVECTOR _target, fl
 	else {
 		_out = XMMatrixIdentity() * _view;
 	}
+}
+#define amin -90
+#define amax 90
+void Mush_Graphics::MushMouseLook(const XMMATRIX &_view, const float dx, const float dy, XMMATRIX &_out){
+	XMMATRIX newMatrix = _view;
+
+	float yaw = XMConvertToRadians( amin + ((dx / m_screen.right) * (amax - (amin))));
+	float pitch = XMConvertToRadians(amin + ((dy / m_screen.bottom) * (amax - (amin))));
+
+	_out = XMMatrixRotationRollPitchYaw(pitch, yaw, 0) * XMMatrixTranslationFromVector(newMatrix.r[3]);
 }
