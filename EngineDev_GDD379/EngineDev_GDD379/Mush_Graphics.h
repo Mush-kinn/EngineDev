@@ -8,14 +8,13 @@
 
 #define DEBUG_SAMPLER 0
 
-
-
-
 enum MouseAccess{ OPEN, CLOSED };
 enum MouseStatus{ LOCKED, FREE };
 
-enum M_MODEL { W_DEFAULT, W_MovingCUBE, W_TOTAL };
-enum M_CAMERA { DEFAULT_VIEW, DEFAULT_PROJECTION, TOTAL};
+enum E_TRANSFORMS { W_DEFAULT, W_MovingCUBE, W_TOTAL };
+enum E_CAMERAS { DEFAULT_VIEW, DEFAULT_PROJECTION, TOTAL_CAMERA };
+enum E_TRACKERS {ORIGIN_VEC, UP_VEC, MOVECUBE_VEC, TOTAL_VEC};
+
 class Mush_Graphics
 {
 protected:	
@@ -39,18 +38,13 @@ protected:
 	MouseStatus MStatus = MouseStatus::FREE;
 
 	// Matrices
-	std::vector<XMFLOAT4X4> *m_Tranforms;
-	XMFLOAT4X4 m_view;
-	XMFLOAT4X4 m_Projection;
-	XMFLOAT4X4 m_CubeWorld;
+	std::vector<XMFLOAT4X4> m_Tranforms;
+	std::vector<XMFLOAT4X4> m_Cameras;
 	XMFLOAT4X4 m_Spinny;
 
 	// Vectors
-	std::vector<XMFLOAT3> *m_Vectors;
+	std::vector<XMFLOAT3> m_Trackers;
 	XMFLOAT3 m_newCamOffset;
-	XMFLOAT3 m_Tracker_Up;
-	XMFLOAT3 m_Tracker_Pos;
-	XMFLOAT3 m_Tracker_Tgt;
 
 	// Buffers
 	ID3D11Buffer *m_vb_Cube;

@@ -25,28 +25,33 @@ void Mush_Graphics::UpdateKeyboardInput(UINT _key, bool _state, bool _toggle){
 
 Mush_Graphics::Mush_Graphics()
 { 
-	XMStoreFloat4x4(&m_CubeWorld, XMMatrixIdentity());
-	m_Tracker_Up = XMFLOAT3(0, 1, 0);
-	m_Tracker_Pos = XMFLOAT3(0, 0, 0);
-	m_Tracker_Tgt = XMFLOAT3(0, 0, 0);
+	m_Tranforms.resize(E_TRANSFORMS::W_TOTAL);
+	m_Cameras.resize(E_CAMERAS::TOTAL_CAMERA);
+	m_Trackers.resize(E_TRACKERS::TOTAL_VEC);
 
-	m_view = XMFLOAT4X4(
+	XMStoreFloat4x4(&m_Tranforms[E_TRANSFORMS::W_MovingCUBE], XMMatrixIdentity());
+	XMStoreFloat4x4(&m_Tranforms[E_TRANSFORMS::W_DEFAULT], XMMatrixIdentity());
+	m_Trackers[E_TRACKERS::UP_VEC] = XMFLOAT3(0, 1, 0);
+	//m_Tracker_Pos = XMFLOAT3(0, 0, 0);
+	m_Trackers[E_TRACKERS::ORIGIN_VEC] = XMFLOAT3(0, 0, 0);
+
+	m_Cameras[E_CAMERAS::DEFAULT_VIEW] = XMFLOAT4X4(
 		1.0f, 0.0f, 0.0f, 0.0f,
 		0.0f, 1.0f, 0.0f, 0.0f,
 		0.0f, 0.0f, 1.0f, 0.0f,
 		0.0f, 0.0f, -1.5f, 1.0f);
 
 	XMMATRIX rotation_trix, projection;
-	XMMATRIX view = XMLoadFloat4x4(&m_view);
+	XMMATRIX view = XMLoadFloat4x4(&m_Cameras[E_CAMERAS::DEFAULT_VIEW]);
 	view = XMMatrixTranslation(0, 1, -5);
 	view = XMMatrixInverse(nullptr, view);
 	toshader_Default.view = XMMatrixTranspose(view);
-	XMStoreFloat4x4(&m_view, view);
+	XMStoreFloat4x4(&m_Cameras[E_CAMERAS::DEFAULT_VIEW], view);
 
 	float aspect = BACKBUFFER_WIDTH / BACKBUFFER_HEIGHT;
 	projection = XMMatrixPerspectiveFovLH(XMConvertToRadians(90.0f), aspect, 0.1f, 100.0f);
 	toshader_Default.projection = XMMatrixTranspose(projection);
-	XMStoreFloat4x4(&m_Projection, projection);
+	XMStoreFloat4x4(&m_Cameras[E_CAMERAS::DEFAULT_PROJECTION], projection);
 
 	// Get a handle to the desktop window
 	m_desktop = GetDesktopWindow();
@@ -55,7 +60,7 @@ Mush_Graphics::Mush_Graphics()
 	turn = 1;
 	xR = 1;
 	yR = 2;
-	zR = 1;
+	zR = 3;
 }
 
 
@@ -374,13 +379,14 @@ bool Mush_Graphics::Render(){
 	
 	m_timeX.Throttle(60);
 
-	turn += 0.5f;
+	turn = 0.5f;
 	float sDelt = (float)m_timeX.SmoothDelta();
 
-	XMMATRIX cube_matrix;
-	cube_matrix = XMMatrixRotationRollPitchYaw(turn*xR*sDelt, turn*yR*sDelt, turn*zR*sDelt);;
+	XMMATRIX cube_matrix = XMLoadFloat4x4(&m_Tranforms[E_TRANSFORMS::W_DEFAULT]);
+	cube_matrix = XMMatrixRotationRollPitchYaw(turn*xR*sDelt, turn*yR*sDelt, turn*zR*sDelt) * cube_matrix;
 	toshader_Default.model = cube_matrix;
-	toshader_Default.view = XMMatrixTranspose( XMLoadFloat4x4(&m_view));
+	XMStoreFloat4x4(&m_Tranforms[E_TRANSFORMS::W_DEFAULT], cube_matrix);
+	toshader_Default.view = XMMatrixTranspose(XMLoadFloat4x4(&m_Cameras[E_CAMERAS::DEFAULT_VIEW]));
 
 	UINT _startSlot = 0;
 	UINT _numBuffs = 1;
@@ -435,7 +441,7 @@ bool Mush_Graphics::Render(){
 
 	m_iDeviceContext->Draw(36, 0);
 
-	toshader_Default.model = XMMatrixTranspose( XMLoadFloat4x4(&m_CubeWorld));
+	toshader_Default.model = XMMatrixTranspose( XMLoadFloat4x4(&m_Tranforms[E_TRANSFORMS::W_MovingCUBE]));
 	
 	ZeroMemory(&map_cube, sizeof(D3D11_MAPPED_SUBRESOURCE));
 	m_iDeviceContext->Map(m_cBuff_perspective, 0, D3D11_MAP::D3D11_MAP_WRITE_DISCARD, NULL, &map_cube);
@@ -530,7 +536,7 @@ bool Mush_Graphics::Update(){
 				temp = XMMatrixRotationY(XMConvertToRadians(90 * sDelt)) *temp;
 		}
 
-		INverted = XMMatrixInverse(NULL, XMLoadFloat4x4(&m_view));
+		INverted = XMMatrixInverse(NULL, XMLoadFloat4x4(&m_Cameras[E_CAMERAS::DEFAULT_VIEW]));
 		XMMatrixDecompose(&Scale, &Rot, &Trans, INverted);
 
 		temp = XMMatrixScalingFromVector(Scale) 
@@ -556,29 +562,23 @@ bool Mush_Graphics::Update(){
 		}
 		XMFLOAT4 MAX(1, 1, 1, 1), MIN(-1, 0, -1, 0);
 		temp.r[1] = XMVectorClamp(temp.r[1], XMLoadFloat4(&MIN), XMLoadFloat4(&MAX));
-		XMStoreFloat4x4(&m_Spinny, temp);
+		XMMATRIX m_Spinny = temp;
 
-		//temp = XMMatrixIdentity();
-		//temp = temp * XMMatrixTranslation(m_newCamOffset.x, 0, m_newCamOffset.z);
-		//temp = temp * XMLoadFloat4x4(&m_Spinny);
+		temp = XMMatrixIdentity() * XMMatrixTranslation(m_newCamOffset.x, 0, m_newCamOffset.z) * m_Spinny;
 
-		temp = XMMatrixIdentity() 
-			* XMMatrixTranslation(m_newCamOffset.x, 0, m_newCamOffset.z)
-			* XMLoadFloat4x4(&m_Spinny);
-
-		XMStoreFloat4x4(&m_view, XMMatrixInverse(NULL, temp));
+		XMStoreFloat4x4(&m_Cameras[E_CAMERAS::DEFAULT_VIEW], XMMatrixInverse(NULL, temp));
 		//XMStoreFloat4x4(&m_BoxWorld, XMMatrixTranslationFromVector(Trans));
 	}
 	else{
 		XMMATRIX temp = XMMatrixIdentity();
-		INverted = XMMatrixInverse(NULL, XMLoadFloat4x4(&m_view));
+		INverted = XMMatrixInverse(NULL, XMLoadFloat4x4(&m_Cameras[E_CAMERAS::DEFAULT_VIEW]));
 		XMMatrixDecompose(&Scale, &Rot, &Trans, INverted);
 		XMVECTOR aVector = XMVector4Transform(Trans, (temp*XMMatrixTranslation(0, m_newCamOffset.y, 0)));
-		XMMatrixDecompose(&Scale, &Rot, &Trans, XMLoadFloat4x4(&m_CubeWorld));
-		XMStoreFloat3(&m_Tracker_Tgt, Trans);
-		temp = XMMatrixLookAtLH(aVector, XMLoadFloat3(&m_Tracker_Tgt), XMLoadFloat3(&m_Tracker_Up));
+		XMMatrixDecompose(&Scale, &Rot, &Trans, XMLoadFloat4x4(&m_Tranforms[E_TRANSFORMS::W_MovingCUBE]));
+		XMStoreFloat3(&m_Trackers[E_TRACKERS::ORIGIN_VEC], Trans);
+		temp = XMMatrixLookAtLH(aVector, XMLoadFloat3(&m_Trackers[E_TRACKERS::ORIGIN_VEC]), XMLoadFloat3(&m_Trackers[E_TRACKERS::UP_VEC]));
 		temp = temp * XMMatrixInverse(NULL, XMMatrixTranslation(m_newCamOffset.x, 0, m_newCamOffset.z));
-		XMStoreFloat4x4(&m_view, temp);
+		XMStoreFloat4x4(&m_Cameras[E_CAMERAS::DEFAULT_VIEW], temp);
 		//XMStoreFloat4x4(&m_BoxWorld, XMMatrixTranslationFromVector(aVector));
 
 	}
@@ -623,7 +623,7 @@ bool Mush_Graphics::Update(){
 				temp = XMMatrixRotationY(XMConvertToRadians(90 * sDelt)) *temp;
 		}
 
-		INverted = XMLoadFloat4x4(&m_CubeWorld);
+		INverted = XMLoadFloat4x4(&m_Tranforms[E_TRANSFORMS::W_MovingCUBE]);
 		XMMatrixDecompose(&Scale, &Rot, &Trans, INverted);
 		temp = XMMatrixScalingFromVector(Scale) * XMMatrixRotationQuaternion(Rot) * temp;
 		temp = temp * XMMatrixTranslation(0, m_newCamOffset.y, 0) * XMMatrixTranslationFromVector(Trans);
@@ -660,18 +660,18 @@ bool Mush_Graphics::Update(){
 			XMStoreFloat4(&pos, XMLoadFloat4x4(&m_Spinny).r[3]);
 			MushLookAt(pos, XMFLOAT4(0, 0, 0, 1), look);
 			temp = temp * look;
-			XMStoreFloat4x4(&m_CubeWorld, temp);
+			XMStoreFloat4x4(&m_Tranforms[E_TRANSFORMS::W_MovingCUBE], temp);
 		}
 		// TURN-TO
 		else if (mahKeys[VK_NUMPAD9]){
 			temp = temp * XMLoadFloat4x4(&m_Spinny);
 			MushTurnTo(temp, XMLoadFloat4(&XMFLOAT4(0, 0, 0, 1)), sDelt * 10, temp);
-			XMStoreFloat4x4(&m_CubeWorld, temp);
+			XMStoreFloat4x4(&m_Tranforms[E_TRANSFORMS::W_MovingCUBE], temp);
 		}
 		// Free Camera. Inactive.
 		else{
 			temp = temp * XMLoadFloat4x4(&m_Spinny);
-			XMStoreFloat4x4(&m_CubeWorld, temp);
+			XMStoreFloat4x4(&m_Tranforms[E_TRANSFORMS::W_MovingCUBE], temp);
 		}
 		//XMStoreFloat4x4(&m_BoxWorld, XMMatrixTranslationFromVector(Trans));
 	}
@@ -751,52 +751,4 @@ void Mush_Graphics::MushTurnTo(const XMMATRIX &_view, const XMVECTOR _target, fl
 	else {
 		_out = XMMatrixIdentity() * _view;
 	}
-}
-
-Mush_Graphics::Debug_Renderer::Debug_Renderer(ID3D11Device *_device, ID3D11DeviceContext * _context) 
-		: Max_verts(40), 
-		debug_device(_device), 
-		debug_context(_context) {
-	vert_count = 0;
-	cpu_buffer = new VERTEX_PosCol[Max_verts];
-	
-	D3D11_BUFFER_DESC desc;
-	ZeroMemory(&desc, sizeof(D3D11_BUFFER_DESC));
-	desc.BindFlags = D3D11_BIND_FLAG::D3D11_BIND_VERTEX_BUFFER;
-	desc.Usage = D3D11_USAGE::D3D11_USAGE_DYNAMIC;
-	desc.ByteWidth = sizeof(VERTEX_PosCol) * Max_verts;
-	desc.CPUAccessFlags = D3D11_CPU_ACCESS_FLAG::D3D11_CPU_ACCESS_WRITE;
-	
-	debug_device->CreateBuffer(&desc, NULL, &gpu_buffer);
-}
-
-Mush_Graphics::Debug_Renderer::~Debug_Renderer(){
-	gpu_buffer->Release();
-	delete[] cpu_buffer;
-}
-
-void Mush_Graphics::Debug_Renderer::add_line(VERTEX_PosCol a, VERTEX_PosCol b){
-	if (vert_count+2 >= Max_verts)
-		return;
-	cpu_buffer[vert_count++] = a;
-	cpu_buffer[vert_count++] = b;
-}
-
-void Mush_Graphics::Debug_Renderer::add_line(VERTEX_PosCol a, VERTEX_PosCol b, XMFLOAT4 _color){
-	if (vert_count + 2 >= Max_verts)
-		return;
-	a.color = b.color = _color;
-	cpu_buffer[vert_count++] = a;
-	cpu_buffer[vert_count++] = b;
-}
-
-unsigned int Mush_Graphics::Debug_Renderer::flush(){
-	D3D11_MAPPED_SUBRESOURCE map;
-	ZeroMemory(&map, sizeof(D3D11_MAPPED_SUBRESOURCE));
-	debug_context->Map(gpu_buffer, 1, D3D11_MAP::D3D11_MAP_WRITE_DISCARD, NULL, &map);
-	memcpy(&map, &cpu_buffer, sizeof(cpu_buffer));
-	debug_context->Unmap(gpu_buffer, NULL);
-	auto temp = vert_count;
-	vert_count = 0;
-	return temp;
 }
