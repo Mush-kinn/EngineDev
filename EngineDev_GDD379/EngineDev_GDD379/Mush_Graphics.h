@@ -134,20 +134,19 @@ protected:
 		
 		ID3D11Device *debug_device;
 		ID3D11DeviceContext *debug_context;
-
-		const int Max_verts;
+		const unsigned int Max_verts;
 		unsigned int vert_count = 0;
 		VERTEX_PosCol *cpu_buffer;
 		ID3D11Buffer *gpu_buffer;
+
+		void prep_gpu_buffer();
+	public:
+
+		void SetDeviceAndContext(ID3D11Device*, ID3D11DeviceContext*);
 		void add_line(VERTEX_PosCol a, VERTEX_PosCol b);
 		void add_line(VERTEX_PosCol a, VERTEX_PosCol b, XMFLOAT4 _color);
-		unsigned int flush();
-
-	public:
-		Debug_Renderer(ID3D11Device *, ID3D11DeviceContext *);
-		Debug_Renderer(ID3D11Device *_device, unsigned int _size);
+		void flush();
+		Debug_Renderer();
 		~Debug_Renderer();
-	} ;
-
-
+	} testing;
 };
