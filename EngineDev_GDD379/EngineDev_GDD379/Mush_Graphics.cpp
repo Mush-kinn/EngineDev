@@ -102,7 +102,6 @@ void Mush_Graphics::ReleasePipeline(pipeline_state_t *_pipe){
 
 Mush_Graphics::~Mush_Graphics()
 {
-	//delete testing;
 	OutputDebugStringW(L"\n\n\n <Detailed Dump> \n\n");
 
 	m_iDeviceContext->ClearState();
@@ -521,6 +520,7 @@ bool Mush_Graphics::Update(){
 		}
 
 #if 1 // DebugRender
+
 		VERTEX_PosCol origin, center;
 		origin.pos = XMFLOAT3(0, 0, 0);
 		XMMATRIX trans = XMMatrixTranslationFromVector(temp.r[3]);
@@ -638,6 +638,13 @@ void Mush_Graphics::MushLookAt(const XMFLOAT4 &_view, const XMFLOAT4 &_target, X
 	_out.r[2] = newZ;
 	_out.r[3] = XMLoadFloat4(&_view);
 
+#if 1 //DebugRender
+	VERTEX_PosCol tar, viw;
+	tar.pos = XMFLOAT3(_target.x, _target.y, _target.z);
+	viw.pos = XMFLOAT3(_view.x, _view.y, _view.z);
+	tar.color = viw.color = XMFLOAT4(0.5f, 1, 0, 1);
+	testing.add_line(tar, viw);
+#endif
 }
 
 void Mush_Graphics::MushTurnTo(const XMMATRIX &_view, const XMVECTOR _target, float _turn, XMMATRIX &_out){
@@ -653,20 +660,20 @@ void Mush_Graphics::MushTurnTo(const XMMATRIX &_view, const XMVECTOR _target, fl
 	XMMATRIX Setup;
 
 
-	if (V.w > 0.1f){
+	if (V.w > 0.005f){
 		yaw = XMConvertToRadians(_turn);
 	}
-	else if (V.w < -0.1f){
+	else if (V.w < -0.005f){
 		yaw = XMConvertToRadians(-_turn);
 	}
 	else {
 		yaw = 0;
 	}
 
-	if (T.w > 0.1f){
+	if (T.w > 0.005f){
 		pitch = XMConvertToRadians(-_turn);
 	}
-	else if (T.w < -0.1f){
+	else if (T.w < -0.005f){
 		pitch = XMConvertToRadians(_turn);
 	}
 	else {
@@ -680,6 +687,13 @@ void Mush_Graphics::MushTurnTo(const XMMATRIX &_view, const XMVECTOR _target, fl
 		*  XMMatrixRotationRollPitchYaw(0, yaw, 0) 
 		* XMMatrixTranslationFromVector(tran);
 
+#if 1 //DebugRender
+	VERTEX_PosCol tar, viw;
+	XMStoreFloat3(&tar.pos, _target);
+	XMStoreFloat3(&viw.pos, _view.r[3]);
+	tar.color = viw.color = XMFLOAT4(1, 0.5f, 0, 1);
+	testing.add_line(tar, viw);
+#endif
 }
 
 #define amin -90
@@ -691,6 +705,43 @@ void Mush_Graphics::MushMouseLook(const XMMATRIX &_view, const float dx, const f
 	float pitch = XMConvertToRadians(amin + ((dy / m_screen.bottom) * (amax - (amin))));
 
 	_out = XMMatrixRotationRollPitchYaw(pitch, yaw, 0) * XMMatrixTranslationFromVector(newMatrix.r[3]);
+
+#if 1 //DebugRender
+	VERTEX_PosCol tar, viw;
+
+	// Z
+	XMStoreFloat3(&tar.pos, (XMMatrixTranslation(0, 0, 1)
+		* XMMatrixRotationRollPitchYaw(pitch, yaw, 0)
+		* XMMatrixTranslation(0, 1.5, 0)).r[3]);
+
+	XMStoreFloat3(&viw.pos, (XMMatrixTranslation(0, 0, -1)
+		* XMMatrixRotationRollPitchYaw(pitch, yaw, 0)
+		* XMMatrixTranslation(0, 1.5, 0)).r[3]);
+	tar.color = viw.color = XMFLOAT4(0, 0, 1, 1);
+	testing.add_line(tar, viw);
+
+	// X
+	XMStoreFloat3(&tar.pos, (XMMatrixTranslation(1, 0, 0) 
+		* XMMatrixRotationRollPitchYaw(pitch, yaw, 0) 
+		* XMMatrixTranslation(0, 1.5, 0)).r[3]);
+
+	XMStoreFloat3(&viw.pos, (XMMatrixTranslation(-1, 0, 0) 
+		* XMMatrixRotationRollPitchYaw(pitch, yaw, 0) 
+		* XMMatrixTranslation(0, 1.5, 0)).r[3]);
+	tar.color = viw.color = XMFLOAT4(1, 0, 0, 1);
+	testing.add_line(tar, viw);
+
+	// Y
+	XMStoreFloat3(&tar.pos, (XMMatrixTranslation(0, 1, 0)
+		* XMMatrixRotationRollPitchYaw(pitch, yaw, 0)
+		* XMMatrixTranslation(0, 1.5, 0)).r[3]);
+
+	XMStoreFloat3(&viw.pos, (XMMatrixTranslation(0, -1, 0)
+		* XMMatrixRotationRollPitchYaw(pitch, yaw, 0)
+		* XMMatrixTranslation(0, 1.5, 0)).r[3]);
+	tar.color = viw.color = XMFLOAT4(0, 1, 0, 1);
+	testing.add_line(tar, viw);
+#endif
 }
 
 
