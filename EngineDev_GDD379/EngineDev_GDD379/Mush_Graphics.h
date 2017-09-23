@@ -6,13 +6,19 @@
 #define BACKBUFFER_WIDTH	1280.0f
 #define BACKBUFFER_HEIGHT	720.0f
 
+#define DEBUG_SAMPLER 0
+
 enum MouseAccess{ OPEN, CLOSED };
 enum MouseStatus{ LOCKED, FREE };
 
+enum E_TRANSFORMS { W_DEFAULT, W_MovingCUBE, W_TOTAL };
+enum E_CAMERAS { DEFAULT_VIEW, DEFAULT_PROJECTION, TOTAL_CAMERA };
+enum E_TRACKERS {ORIGIN_VEC, UP_VEC, MOVECUBE_VEC, TOTAL_VEC};
+
 class Mush_Graphics
 {
-private:
-
+protected:	
+	
 	float speed = 4;
 	float turn;
 	float xR, yR, zR;
@@ -32,16 +38,13 @@ private:
 	MouseStatus MStatus = MouseStatus::FREE;
 
 	// Matrices
-	XMFLOAT4X4 m_view;
-	XMFLOAT4X4 m_Projection;
-	XMFLOAT4X4 m_CubeWorld;
+	std::vector<XMFLOAT4X4> m_Tranforms;
+	std::vector<XMFLOAT4X4> m_Cameras;
 	XMFLOAT4X4 m_Spinny;
 
 	// Vectors
+	std::vector<XMFLOAT3> m_Trackers;
 	XMFLOAT3 m_newCamOffset;
-	XMFLOAT3 m_Tracker_Up;
-	XMFLOAT3 m_Tracker_Pos;
-	XMFLOAT3 m_Tracker_Tgt;
 
 	// Buffers
 	ID3D11Buffer *m_vb_Cube;
@@ -76,12 +79,12 @@ private:
 
 public:
 	static void UpdateKeyboardInput(UINT _key, bool _state, bool _toggle = false);
-	static void UpdateMouseInput(tagPOINTS _point);
 	static MouseAccess mAccess;
 
 	Mush_Graphics();
 	~Mush_Graphics();
 	void Init();
+
 	struct pipeline_state_t
 	{
 		ID3D11InputLayout *input_layout;
@@ -121,25 +124,42 @@ public:
 	bool Render();
 	bool Update();
 
-private:
-	void MushLookAt(const XMFLOAT4 &_view, const XMFLOAT4 &_target, XMMATRIX &_out);
-	void MushTurnTo(const XMMATRIX &_view, const XMVECTOR _target, int _turn, XMMATRIX &_out);
+	private:
+		void MushLookAt(const XMFLOAT4 &_view, const XMFLOAT4 &_target, XMMATRIX &_out);
+		void MushTurnTo(const XMMATRIX &_view, const XMVECTOR _target, float _turn, XMMATRIX &_out);
+		void MushMouseLook(const XMMATRIX &_view, const float dx, const float dy, XMMATRIX &_out);
 #if 0 //FBX
 private: 
-	int numTabs = 0;
 	FbxManager* FBX_Manager;
+	int numTabs = 0;
 	const char* FBX_FileName = "Assets\\BattleMage.fbx";
 	FbxScene* FBX_BattleMageScene;
 
 	void FBX_PrintTabs();
 	FbxString FBX_GetAttributeTypeName(FbxNodeAttribute::EType type);
-	void FBX_PrintAttribute(FbxNodeAttribute* pAttribute);
 	void FBX_PrintNode(FbxNode* pNode);
+	void FBX_PrintAttribute(FbxNodeAttribute* pAttribute);
 	void FBX_Init_Import();
 
-
 #endif
+protected:
+	class Debug_Renderer{
+		
+		ID3D11Device *debug_device;
+		ID3D11DeviceContext *debug_context;
+		const unsigned int Max_verts;
+		unsigned int vert_count = 0;
+		VERTEX_PosCol *cpu_buffer;
+		ID3D11Buffer *gpu_buffer;
 
+		void prep_gpu_buffer();
+	public:
 
+		void SetDeviceAndContext(ID3D11Device*, ID3D11DeviceContext*);
+		void add_line(VERTEX_PosCol a, VERTEX_PosCol b);
+		void add_line(VERTEX_PosCol a, VERTEX_PosCol b, XMFLOAT4 _color);
+		void flush();
+		Debug_Renderer();
+		~Debug_Renderer();
+	} testing;
 };
-
