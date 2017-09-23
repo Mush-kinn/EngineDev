@@ -16,6 +16,12 @@ Number_Pad_1: Toggle Mouse look;
 
 *note: Only first toggle is active. 
 
+**Debug renderer:
+Look-at has a lime-Green line towards target.
+Turn-to has orange line towards target.
+Mouse look draws xyz axis on top of static cube representing pitch/yaw movements from mouse input.
+
+Axis color on moving Cube are the same as the back face of the axis to prevent them from blending with the forwards faces they project from.
 
 
 

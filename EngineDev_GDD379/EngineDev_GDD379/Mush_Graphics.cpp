@@ -102,7 +102,6 @@ void Mush_Graphics::ReleasePipeline(pipeline_state_t *_pipe){
 
 Mush_Graphics::~Mush_Graphics()
 {
-	//delete testing;
 	OutputDebugStringW(L"\n\n\n <Detailed Dump> \n\n");
 
 	m_iDeviceContext->ClearState();
@@ -236,6 +235,8 @@ void Mush_Graphics::CreateDeviceSwapChain(HWND &_window){
 		&FeatureLevelsRequested, numLevelsRequested, D3D11_SDK_VERSION, &chainDesc, &swapChain,
 		&iDevice, &FeatureLevelsSupported, &iDeviceContext);
 #endif
+
+	testing.SetDeviceAndContext(m_iDevice, m_iDeviceContext);
 }
 
 void Mush_Graphics::SetDepthStencilBuffer(ID3D11Texture2D **_buffer){
@@ -446,7 +447,6 @@ bool Mush_Graphics::Update(){
 		temp = temp * XMMatrixInverse(NULL, XMMatrixTranslation(m_newCamOffset.x, 0, m_newCamOffset.z));
 		XMStoreFloat4x4(&m_Cameras[E_CAMERAS::DEFAULT_VIEW], temp);
 		//XMStoreFloat4x4(&m_BoxWorld, XMMatrixTranslationFromVector(aVector));
-
 	}
 
 
@@ -518,12 +518,30 @@ bool Mush_Graphics::Update(){
 			temp = temp * XMLoadFloat4x4(&m_Spinny);
 			XMStoreFloat4x4(&m_Tranforms[E_TRANSFORMS::W_MovingCUBE], temp);
 		}
+
+#if 1 // DebugRender
+
+		VERTEX_PosCol origin, center;
+		origin.pos = XMFLOAT3(0, 0, 0);
+		XMMATRIX trans = XMMatrixTranslationFromVector(temp.r[3]);
+		XMStoreFloat3(&origin.pos, temp.r[3]);
+		
+		XMStoreFloat3(&center.pos, XMVector3Transform( temp.r[2],trans));
+		testing.add_line(center, origin, XMFLOAT4(1, 1, 0, 1));
+
+		XMStoreFloat3(&center.pos, XMVector3Transform(temp.r[1], trans));
+		testing.add_line(center, origin, XMFLOAT4(1, 0, 1, 1));
+
+		XMStoreFloat3(&center.pos, XMVector3Transform(temp.r[0], trans));
+		testing.add_line(center, origin, XMFLOAT4(0, 1, 1, 1));
+
+#endif
 	}
 	turn = 0.5f;
 	XMMATRIX cube_matrix = XMLoadFloat4x4(&m_Tranforms[E_TRANSFORMS::W_DEFAULT]);
 	cube_matrix = XMMatrixRotationRollPitchYaw(turn*xR*sDelt, turn*yR*sDelt, turn*zR*sDelt) * cube_matrix;
 	XMStoreFloat4x4(&m_Tranforms[E_TRANSFORMS::W_DEFAULT], cube_matrix);
-
+	
 	ZeroMemory(&m_newCamOffset, sizeof(m_newCamOffset));
 	return true;
 }
@@ -540,6 +558,7 @@ bool Mush_Graphics::Render(){
 	UINT _strides = 0;
 	UINT _offSets = 0;
 	_strides = static_cast<UINT>(sizeof(VERTEX_PosCol));
+
 	D3D11_MAPPED_SUBRESOURCE map_cube;
 	ZeroMemory(&map_cube, sizeof(D3D11_MAPPED_SUBRESOURCE));
 	m_iDeviceContext->Map(m_cBuff_perspective, 0, D3D11_MAP::D3D11_MAP_WRITE_DISCARD, NULL, &map_cube);
@@ -584,7 +603,18 @@ bool Mush_Graphics::Render(){
 	m_iDeviceContext->Map(m_cBuff_perspective, 0, D3D11_MAP::D3D11_MAP_WRITE_DISCARD, NULL, &map_cube);
 	memcpy(map_cube.pData, &toshader_Default, sizeof(toshader_Default));
 	m_iDeviceContext->Unmap(m_cBuff_perspective, 0);
+
 	m_iDeviceContext->Draw(36, 0);
+
+#if 1 // DebugRender
+	toshader_Default.model = XMMatrixIdentity();
+
+	ZeroMemory(&map_cube, sizeof(D3D11_MAPPED_SUBRESOURCE));
+	m_iDeviceContext->Map(m_cBuff_perspective, 0, D3D11_MAP::D3D11_MAP_WRITE_DISCARD, NULL, &map_cube);
+	memcpy(map_cube.pData, &toshader_Default, sizeof(toshader_Default));
+	m_iDeviceContext->Unmap(m_cBuff_perspective, 0);
+	testing.flush();
+#endif
 
 	m_swapChain->Present(0, 0);
 	return false;
@@ -608,6 +638,13 @@ void Mush_Graphics::MushLookAt(const XMFLOAT4 &_view, const XMFLOAT4 &_target, X
 	_out.r[2] = newZ;
 	_out.r[3] = XMLoadFloat4(&_view);
 
+#if 1 //DebugRender
+	VERTEX_PosCol tar, viw;
+	tar.pos = XMFLOAT3(_target.x, _target.y, _target.z);
+	viw.pos = XMFLOAT3(_view.x, _view.y, _view.z);
+	tar.color = viw.color = XMFLOAT4(0.5f, 1, 0, 1);
+	testing.add_line(tar, viw);
+#endif
 }
 
 void Mush_Graphics::MushTurnTo(const XMMATRIX &_view, const XMVECTOR _target, float _turn, XMMATRIX &_out){
@@ -623,20 +660,20 @@ void Mush_Graphics::MushTurnTo(const XMMATRIX &_view, const XMVECTOR _target, fl
 	XMMATRIX Setup;
 
 
-	if (V.w > 0.1f){
+	if (V.w > 0.005f){
 		yaw = XMConvertToRadians(_turn);
 	}
-	else if (V.w < -0.1f){
+	else if (V.w < -0.005f){
 		yaw = XMConvertToRadians(-_turn);
 	}
 	else {
 		yaw = 0;
 	}
 
-	if (T.w > 0.1f){
+	if (T.w > 0.005f){
 		pitch = XMConvertToRadians(-_turn);
 	}
-	else if (T.w < -0.1f){
+	else if (T.w < -0.005f){
 		pitch = XMConvertToRadians(_turn);
 	}
 	else {
@@ -650,7 +687,15 @@ void Mush_Graphics::MushTurnTo(const XMMATRIX &_view, const XMVECTOR _target, fl
 		*  XMMatrixRotationRollPitchYaw(0, yaw, 0) 
 		* XMMatrixTranslationFromVector(tran);
 
+#if 1 //DebugRender
+	VERTEX_PosCol tar, viw;
+	XMStoreFloat3(&tar.pos, _target);
+	XMStoreFloat3(&viw.pos, _view.r[3]);
+	tar.color = viw.color = XMFLOAT4(1, 0.5f, 0, 1);
+	testing.add_line(tar, viw);
+#endif
 }
+
 #define amin -90
 #define amax 90
 void Mush_Graphics::MushMouseLook(const XMMATRIX &_view, const float dx, const float dy, XMMATRIX &_out){
@@ -660,4 +705,99 @@ void Mush_Graphics::MushMouseLook(const XMMATRIX &_view, const float dx, const f
 	float pitch = XMConvertToRadians(amin + ((dy / m_screen.bottom) * (amax - (amin))));
 
 	_out = XMMatrixRotationRollPitchYaw(pitch, yaw, 0) * XMMatrixTranslationFromVector(newMatrix.r[3]);
+
+#if 1 //DebugRender
+	VERTEX_PosCol tar, viw;
+
+	// Z
+	XMStoreFloat3(&tar.pos, (XMMatrixTranslation(0, 0, 1)
+		* XMMatrixRotationRollPitchYaw(pitch, yaw, 0)
+		* XMMatrixTranslation(0, 1.5, 0)).r[3]);
+
+	XMStoreFloat3(&viw.pos, (XMMatrixTranslation(0, 0, -1)
+		* XMMatrixRotationRollPitchYaw(pitch, yaw, 0)
+		* XMMatrixTranslation(0, 1.5, 0)).r[3]);
+	tar.color = viw.color = XMFLOAT4(0, 0, 1, 1);
+	testing.add_line(tar, viw);
+
+	// X
+	XMStoreFloat3(&tar.pos, (XMMatrixTranslation(1, 0, 0) 
+		* XMMatrixRotationRollPitchYaw(pitch, yaw, 0) 
+		* XMMatrixTranslation(0, 1.5, 0)).r[3]);
+
+	XMStoreFloat3(&viw.pos, (XMMatrixTranslation(-1, 0, 0) 
+		* XMMatrixRotationRollPitchYaw(pitch, yaw, 0) 
+		* XMMatrixTranslation(0, 1.5, 0)).r[3]);
+	tar.color = viw.color = XMFLOAT4(1, 0, 0, 1);
+	testing.add_line(tar, viw);
+
+	// Y
+	XMStoreFloat3(&tar.pos, (XMMatrixTranslation(0, 1, 0)
+		* XMMatrixRotationRollPitchYaw(pitch, yaw, 0)
+		* XMMatrixTranslation(0, 1.5, 0)).r[3]);
+
+	XMStoreFloat3(&viw.pos, (XMMatrixTranslation(0, -1, 0)
+		* XMMatrixRotationRollPitchYaw(pitch, yaw, 0)
+		* XMMatrixTranslation(0, 1.5, 0)).r[3]);
+	tar.color = viw.color = XMFLOAT4(0, 1, 0, 1);
+	testing.add_line(tar, viw);
+#endif
+}
+
+
+Mush_Graphics::Debug_Renderer::Debug_Renderer() : Max_verts(100){
+	vert_count = 0;
+	cpu_buffer = new VERTEX_PosCol[Max_verts];
+}
+
+void Mush_Graphics::Debug_Renderer::prep_gpu_buffer(){
+	D3D11_BUFFER_DESC desc;
+	ZeroMemory(&desc, sizeof(D3D11_BUFFER_DESC));
+	desc.BindFlags = D3D11_BIND_FLAG::D3D11_BIND_VERTEX_BUFFER;
+	desc.Usage = D3D11_USAGE::D3D11_USAGE_DYNAMIC;
+	desc.ByteWidth = sizeof(VERTEX_PosCol) * Max_verts;
+	desc.CPUAccessFlags = D3D11_CPU_ACCESS_FLAG::D3D11_CPU_ACCESS_WRITE;
+
+	debug_device->CreateBuffer(&desc, NULL, &gpu_buffer);
+}
+
+void Mush_Graphics::Debug_Renderer::SetDeviceAndContext(ID3D11Device *_device, ID3D11DeviceContext *_context){
+	debug_device = _device;
+	debug_context = _context;
+
+	prep_gpu_buffer();
+}
+
+Mush_Graphics::Debug_Renderer::~Debug_Renderer(){
+	gpu_buffer->Release();
+	delete[] cpu_buffer;
+}
+
+void Mush_Graphics::Debug_Renderer::add_line(VERTEX_PosCol a, VERTEX_PosCol b){
+	if (vert_count + 2 >= Max_verts)
+		return;
+	cpu_buffer[vert_count++] = a;
+	cpu_buffer[vert_count++] = b;
+}
+
+void Mush_Graphics::Debug_Renderer::add_line(VERTEX_PosCol a, VERTEX_PosCol b, XMFLOAT4 _color){
+	if (vert_count + 2 >= Max_verts)
+		return;
+	a.color = b.color = _color;
+	cpu_buffer[vert_count++] = a;
+	cpu_buffer[vert_count++] = b;
+}
+
+void Mush_Graphics::Debug_Renderer::flush(){
+	UINT strides = sizeof(VERTEX_PosCol);
+	UINT off = 0;
+	D3D11_MAPPED_SUBRESOURCE map;
+	ZeroMemory(&map, sizeof(D3D11_MAPPED_SUBRESOURCE));
+	debug_context->Map(gpu_buffer, 0, D3D11_MAP_WRITE_DISCARD, NULL, &map);
+	memcpy(map.pData, cpu_buffer, strides*vert_count);
+	debug_context->Unmap(gpu_buffer, 0);
+	debug_context->IASetVertexBuffers(0, 1, &gpu_buffer, &strides , &off);
+	debug_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY::D3D10_PRIMITIVE_TOPOLOGY_LINELIST);
+	debug_context->Draw(vert_count, 0);
+	vert_count = 0;
 }
