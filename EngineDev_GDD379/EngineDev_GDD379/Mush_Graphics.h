@@ -128,7 +128,7 @@ public:
 		void MushLookAt(const XMFLOAT4 &_view, const XMFLOAT4 &_target, XMMATRIX &_out);
 		void MushTurnTo(const XMMATRIX &_view, const XMVECTOR _target, float _turn, XMMATRIX &_out);
 		void MushMouseLook(const XMMATRIX &_view, const float dx, const float dy, XMMATRIX &_out);
-#if 0 //FBX
+#if 1 //FBX
 private: 
 	FbxManager* FBX_Manager;
 	int numTabs = 0;
@@ -142,6 +142,7 @@ private:
 	void FBX_Init_Import();
 
 #endif
+
 protected:
 	class Debug_Renderer{
 		

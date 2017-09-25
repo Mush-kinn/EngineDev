@@ -1,5 +1,5 @@
-Release
-\Debug
+EngineDev_GDD379/*/Debug
+EngineDev_GDD379/*/Release
 ipch
 *.suo
 *.sdf

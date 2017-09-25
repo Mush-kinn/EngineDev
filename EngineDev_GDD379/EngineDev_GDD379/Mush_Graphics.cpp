@@ -87,6 +87,10 @@ void Mush_Graphics::Init(){
 	iDevice->CreateSamplerState(&sampler_desc, &m_SampleState);
 #endif
 	CreateDefaultCube(&m_vb_Cube);
+
+#if 1 //FBX
+	FBX_Init_Import();
+#endif
 }
 
 void Mush_Graphics::ReleasePipeline(pipeline_state_t *_pipe){
@@ -103,6 +107,9 @@ void Mush_Graphics::ReleasePipeline(pipeline_state_t *_pipe){
 Mush_Graphics::~Mush_Graphics()
 {
 	OutputDebugStringW(L"\n\n\n <Detailed Dump> \n\n");
+#if 1 //FBX
+	FBX_Manager->Destroy();
+#endif
 
 	m_iDeviceContext->ClearState();
 	m_iDevice->Release();
@@ -616,6 +623,14 @@ bool Mush_Graphics::Render(){
 	testing.flush();
 #endif
 
+#if 1 //FBX
+	FbxNode* lRootNode = FBX_BattleMageScene->GetRootNode();
+	if (lRootNode) {
+		for (int i = 0; i < lRootNode->GetChildCount(); i++)
+			FBX_PrintNode(lRootNode->GetChild(i));
+	}
+	
+#endif
 	m_swapChain->Present(0, 0);
 	return false;
 }
@@ -801,7 +816,7 @@ void Mush_Graphics::Debug_Renderer::flush(){
 	debug_context->Draw(vert_count, 0);
 	vert_count = 0;
 }
-#if 0 // FBX
+#if 1 // FBX
 
 void Mush_Graphics::FBX_PrintTabs(){
 	for (int i = 0; i < numTabs; i++)
