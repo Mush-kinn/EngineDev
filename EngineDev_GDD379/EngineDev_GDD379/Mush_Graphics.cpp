@@ -243,7 +243,7 @@ void Mush_Graphics::CreateDeviceSwapChain(HWND &_window){
 		&iDevice, &FeatureLevelsSupported, &iDeviceContext);
 #endif
 
-	testing.SetDeviceAndContext(m_iDevice, m_iDeviceContext);
+	m_debugRenderBase.SetDeviceAndContext(m_iDevice, m_iDeviceContext);
 }
 
 void Mush_Graphics::SetDepthStencilBuffer(ID3D11Texture2D **_buffer){
@@ -534,13 +534,13 @@ bool Mush_Graphics::Update(){
 		XMStoreFloat3(&origin.pos, temp.r[3]);
 		
 		XMStoreFloat3(&center.pos, XMVector3Transform( temp.r[2],trans));
-		testing.add_line(center, origin, XMFLOAT4(1, 1, 0, 1));
+		m_debugRenderBase.add_line(center, origin, XMFLOAT4(1, 1, 0, 1));
 
 		XMStoreFloat3(&center.pos, XMVector3Transform(temp.r[1], trans));
-		testing.add_line(center, origin, XMFLOAT4(1, 0, 1, 1));
+		m_debugRenderBase.add_line(center, origin, XMFLOAT4(1, 0, 1, 1));
 
 		XMStoreFloat3(&center.pos, XMVector3Transform(temp.r[0], trans));
-		testing.add_line(center, origin, XMFLOAT4(0, 1, 1, 1));
+		m_debugRenderBase.add_line(center, origin, XMFLOAT4(0, 1, 1, 1));
 
 #endif
 	}
@@ -620,7 +620,7 @@ bool Mush_Graphics::Render(){
 	m_iDeviceContext->Map(m_cBuff_perspective, 0, D3D11_MAP::D3D11_MAP_WRITE_DISCARD, NULL, &map_cube);
 	memcpy(map_cube.pData, &toshader_Default, sizeof(toshader_Default));
 	m_iDeviceContext->Unmap(m_cBuff_perspective, 0);
-	testing.flush();
+	m_debugRenderBase.flush();
 #endif
 
 #if 1 //FBX
@@ -658,7 +658,7 @@ void Mush_Graphics::MushLookAt(const XMFLOAT4 &_view, const XMFLOAT4 &_target, X
 	tar.pos = XMFLOAT3(_target.x, _target.y, _target.z);
 	viw.pos = XMFLOAT3(_view.x, _view.y, _view.z);
 	tar.color = viw.color = XMFLOAT4(0.5f, 1, 0, 1);
-	testing.add_line(tar, viw);
+	m_debugRenderBase.add_line(tar, viw);
 #endif
 }
 
@@ -707,7 +707,7 @@ void Mush_Graphics::MushTurnTo(const XMMATRIX &_view, const XMVECTOR _target, fl
 	XMStoreFloat3(&tar.pos, _target);
 	XMStoreFloat3(&viw.pos, _view.r[3]);
 	tar.color = viw.color = XMFLOAT4(1, 0.5f, 0, 1);
-	testing.add_line(tar, viw);
+	m_debugRenderBase.add_line(tar, viw);
 #endif
 }
 
@@ -733,7 +733,7 @@ void Mush_Graphics::MushMouseLook(const XMMATRIX &_view, const float dx, const f
 		* XMMatrixRotationRollPitchYaw(pitch, yaw, 0)
 		* XMMatrixTranslation(0, 1.5, 0)).r[3]);
 	tar.color = viw.color = XMFLOAT4(0, 0, 1, 1);
-	testing.add_line(tar, viw);
+	m_debugRenderBase.add_line(tar, viw);
 
 	// X
 	XMStoreFloat3(&tar.pos, (XMMatrixTranslation(1, 0, 0) 
@@ -744,7 +744,7 @@ void Mush_Graphics::MushMouseLook(const XMMATRIX &_view, const float dx, const f
 		* XMMatrixRotationRollPitchYaw(pitch, yaw, 0) 
 		* XMMatrixTranslation(0, 1.5, 0)).r[3]);
 	tar.color = viw.color = XMFLOAT4(1, 0, 0, 1);
-	testing.add_line(tar, viw);
+	m_debugRenderBase.add_line(tar, viw);
 
 	// Y
 	XMStoreFloat3(&tar.pos, (XMMatrixTranslation(0, 1, 0)
@@ -755,7 +755,7 @@ void Mush_Graphics::MushMouseLook(const XMMATRIX &_view, const float dx, const f
 		* XMMatrixRotationRollPitchYaw(pitch, yaw, 0)
 		* XMMatrixTranslation(0, 1.5, 0)).r[3]);
 	tar.color = viw.color = XMFLOAT4(0, 1, 0, 1);
-	testing.add_line(tar, viw);
+	m_debugRenderBase.add_line(tar, viw);
 #endif
 }
 
@@ -763,6 +763,8 @@ void Mush_Graphics::MushMouseLook(const XMMATRIX &_view, const float dx, const f
 Mush_Graphics::Debug_Renderer::Debug_Renderer() : Max_verts(100){
 	vert_count = 0;
 	cpu_buffer = new VERTEX_PosCol[Max_verts];
+	std::vector<int> paper;
+	
 }
 
 void Mush_Graphics::Debug_Renderer::prep_gpu_buffer(){
@@ -911,6 +913,33 @@ void Mush_Graphics::FBX_Init_Import(){
 
 	// The file is imported; so get rid of the importer.
 	lImporter->Destroy();
+
+#ifdef BinImport
+	FBX_BinaryImport
+#endif	
+}
+
+void Mush_Graphics::FBX_BinaryImport(){
+
+
+	std::fstream read;
+	read.open("Assets\\terrain.bin", std::ios_base::binary | std::ios_base::in);
+	if (read.is_open()){
+		
+		//read.seekg(0, std::ios_base::end);
+		//int count = (int)read.tellg();
+		read.seekg(0, std::ios_base::beg);
+		
+		read.read((char*)&Vert_count, sizeof(Vert_count));
+		pos.resize(Vert_count);
+		norm.resize(Vert_count);
+		uv.resize(Vert_count);
+		read.read((char*)&(*pos.data()), sizeof(float3)*Vert_count);
+		read.read((char*)&(*norm.data()), sizeof(float3)*Vert_count);
+		read.read((char*)&(*uv.data()), sizeof(float3)*Vert_count);
+		
+		read.close();
+	}
 }
 
 #endif

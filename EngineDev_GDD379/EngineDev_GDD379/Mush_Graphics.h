@@ -2,6 +2,7 @@
 #include "stdafx.h"
 #include "SharedDefines.h"
 #include "XTime.h"
+#include "Mush_BVH.h"
 
 #define BACKBUFFER_WIDTH	1280.0f
 #define BACKBUFFER_HEIGHT	720.0f
@@ -132,14 +133,22 @@ public:
 private: 
 	FbxManager* FBX_Manager;
 	int numTabs = 0;
-	const char* FBX_FileName = "Assets\\BattleMage.fbx";
+	const char* FBX_FileName = "Assets\\terrain.fbx";
 	FbxScene* FBX_BattleMageScene;
+
+	uint32_t Vert_count;
+	std::vector<float3> pos;
+	std::vector<float3> norm;
+	std::vector<float2> uv;
+
 
 	void FBX_PrintTabs();
 	FbxString FBX_GetAttributeTypeName(FbxNodeAttribute::EType type);
 	void FBX_PrintNode(FbxNode* pNode);
 	void FBX_PrintAttribute(FbxNodeAttribute* pAttribute);
 	void FBX_Init_Import();
+
+	void FBX_BinaryImport();
 
 #endif
 
@@ -162,5 +171,6 @@ protected:
 		void flush();
 		Debug_Renderer();
 		~Debug_Renderer();
-	} testing;
+	} m_debugRenderBase;
+
 };

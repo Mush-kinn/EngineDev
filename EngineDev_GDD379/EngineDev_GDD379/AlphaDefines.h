@@ -1,5 +1,5 @@
 // Virtual Key defines for Alphabet Letters (A-Z)
-
+#pragma once
 
 #ifndef VK_A
 #define VK_A 0x41
